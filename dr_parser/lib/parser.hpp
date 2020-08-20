@@ -39,6 +39,19 @@ struct Result {
   int catflags;
 };
 
-void _parse_dr(char* filename, vector<Result>* results);
+class CppDRParser{
+  int nObjects;
+  int batchSize;
+  vector<Header> objects;
+  char* filename;
+  FILE *fp;
+
+  public:
+    CppDRParser();
+    CppDRParser(char* file_name, int batch_size);
+    ~CppDRParser();
+    vector<Header> getObjects();
+    void parse_dr(vector<Result>* results);
+};
 
 #endif

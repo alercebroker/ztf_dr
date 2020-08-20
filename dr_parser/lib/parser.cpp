@@ -20,8 +20,8 @@ void parse_header(string line, struct Header *header) {
   header->RcID = stoi(result.at(4));
   header->ObjRA = stof(result.at(5));
   header->ObjDec = stof(result.at(6));
-}
 
+}
 
 void parse_row(string line, struct Row *row) {
   istringstream iss(line);
@@ -50,8 +50,19 @@ void mix_data(struct Row row, struct Header header, struct Result *result){
   result->catflags = row.catflags;
 }
 
-void _parse_dr(char* filename, vector<Result>* results){
-    FILE *fp;
+CppDRParser::~CppDRParser(){
+  fclose(fp);
+}
+
+CppDRParser::CppDRParser(){
+}
+
+CppDRParser::CppDRParser(char* file_name, int batch_size){
+  batchSize = batch_size;
+  filename = file_name;
+}
+
+void CppDRParser::parse_dr(vector<Result>* results){
     char * line = NULL;
     ssize_t read;
     size_t len = 0;
@@ -70,12 +81,14 @@ void _parse_dr(char* filename, vector<Result>* results){
       if(line[0] == '#'){
         memmove(line, line+1, strlen(line));
         parse_header(line, &objectMeta);
+        nObjects++;
+        objects.push_back(objectMeta);
+
+        if(nObjects == batchSize) return;
       }else{
         parse_row(line, &objectData);
         mix_data(objectData, objectMeta, &objectResult);
         (*results).push_back(objectResult);
       }
     }
-    fclose(fp);
-
 }

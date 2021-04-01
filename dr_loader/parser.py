@@ -117,9 +117,8 @@ class Parser:
 
     def bulk_upload_s3(self, field_dir, field_name):
         bucket_dir = os.path.join(self.bucket, field_name)
-        command = f"aws s3 sync {field_dir} {bucket_dir}"
+        command = f"aws s3 sync {field_dir} {bucket_dir} > /dev/null"
         return os.system(command)
-
 
     def process_tarfile(self, row, output_path="/tmp"):
         """

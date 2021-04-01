@@ -30,7 +30,6 @@ class DRDownloader:
         self.bucket = bucket
         self.output_folder = output_folder
         self.auto_clean = auto_clean
-
         self.checksums = None
 
         self.init_logging()
@@ -78,7 +77,6 @@ class DRDownloader:
         if not self.bucket:
             return 1
         bucket_dir = os.path.join(self.bucket, field_name)
-        print(bucket_dir)
         command = f"aws s3 sync {local_path} {bucket_dir} > /dev/null"
         return os.system(command)
 
@@ -109,10 +107,3 @@ class DRDownloader:
         for _ in tqdm(pool.imap_unordered(self.process, fields),
                       total=len(fields)):
             pass
-
-
-if __name__ == "__main__":
-    dr = DRDownloader("https://irsa.ipac.caltech.edu/data/ZTF/lc_dr5",
-                      "/home/javier/Desktop/notebooks/spark/checksums.md5",
-                      bucket="s3://ztf-data-releases/dr5/parquet")
-    dr.run(1)

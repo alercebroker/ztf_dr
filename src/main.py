@@ -26,3 +26,7 @@ def download_data_release(data_release_url, checksum_path, bucket_path, ncores, 
 def cmd():
     cli.add_command(download_data_release)
     cli()
+
+
+if __name__ == "__main__":
+    cmd()

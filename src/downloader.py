@@ -1,3 +1,4 @@
+import boto3
 import hashlib
 import pandas as pd
 import re
@@ -36,15 +37,30 @@ class DRDownloader:
                  bucket,
                  output_folder="/tmp",
                  auto_clean=True):
+        self.logger = self.init_logging()
         self.data_release_url = data_release_url
         self.checksum_path = checksum_path
         self.bucket = bucket
         self.output_folder = output_folder
         self.auto_clean = auto_clean
         self.checksums = None
+        self.uploaded_files = self.in_s3_files()
 
-        self.logger = self.init_logging()
         self.get_checksums()
+
+    def in_s3_files(self):
+        pattern = r"s3://([\w'-]+)/([\w'-]+).*"
+        data = re.findall(pattern, self.bucket)
+        if len(data) != 1:
+            raise ValueError("Put a correct format path: s3://<bucket-name>/<dr-folder>")
+        data = data[0]
+        bucket_name, data_release = data[0], data[1]
+        self.logger.info(f"Finding existing parquets in {bucket_name} of {data_release}")
+        s3 = boto3.resource('s3')
+        bucket = s3.Bucket(bucket_name)
+        files = [x.key.split("/")[-1] for x in bucket.objects.filter(Prefix=data_release)]
+        self.logger.info(f"Found {len(files)} parquets in {self.bucket}")
+        return files
 
     def init_logging(self, loglevel="INFO"):
         numeric_level = getattr(logging, loglevel.upper(), None)
@@ -120,7 +136,11 @@ class DRDownloader:
             link = row[1]
             parquet = link.split("/")[-1]
             parquet_path = os.path.join(field_path, parquet)
-            self.download(parquet_path, link, checksum_reference)
+
+            if parquet in self.uploaded_files:
+                self.logger.info(f"Already exists {parquet} in {self.bucket}")
+            else:
+                self.download(parquet_path, link, checksum_reference)
 
         if self.bucket:
             self.bulk_upload_s3(field_path, field)

@@ -1,0 +1,7 @@
+boto3
+click
+requests
+pandas
+wget
+s3fs
+tqdm

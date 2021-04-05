@@ -18,6 +18,17 @@ def generate_md5_checksum(fname, chunksize=4096):
     return hash_md5.hexdigest()
 
 
+def field_stats(path):
+    total_size = 0
+    files = 0
+    for dirpath, dirnames, filenames in os.walk(path):
+        for i in filenames:
+            f = os.path.join(dirpath, i)
+            total_size += os.path.getsize(f)
+            files += 1
+    return files, total_size
+
+
 class DRDownloader:
     def __init__(self,
                  data_release_url,
@@ -32,16 +43,23 @@ class DRDownloader:
         self.auto_clean = auto_clean
         self.checksums = None
 
-        self.init_logging()
+        self.logger = self.init_logging()
         self.get_checksums()
 
     def init_logging(self, loglevel="INFO"):
         numeric_level = getattr(logging, loglevel.upper(), None)
         if not isinstance(numeric_level, int):
             raise ValueError("Invalid log level: %s" % loglevel)
-        logging.basicConfig(level=numeric_level,
-                            format='%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s',
+
+        logger = logging.getLogger(__name__)
+        logger.setLevel(numeric_level)
+
+        logging.basicConfig(format='%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S')
+
+        file = logging.FileHandler("downloader.log")
+        logger.addHandler(file)
+        return logger
 
     def get_checksums(self) -> pd.DataFrame:
         def find_field(string):
@@ -53,7 +71,7 @@ class DRDownloader:
                                 squeeze=True)
 
         checksums["field"] = checksums["file"].map(lambda x: find_field(x))
-        checksums["file"] = checksums['file'].map(lambda x: self.data_release_url + x[1:])
+        checksums["file"] = checksums['file'].map(lambda x: self.data_release_url + x[2:])
         self.checksums = checksums
         return checksums
 
@@ -61,10 +79,15 @@ class DRDownloader:
         if os.path.exists(local_path):
             checksum = generate_md5_checksum(local_path)
             if checksum == checksum_reference:
-                logging.info(f"File {link} already exists (correct checksum)")
+                self.logger.info(f"File {link} already exists (correct checksum)")
                 return
 
-        wget.download(link, local_path)
+        try:
+            wget.download(link, local_path, bar=None)
+
+        except Exception as e:
+            self.logger.info(f"Conflict with {link}: {e}")
+
         checksum = generate_md5_checksum(local_path)
         if checksum != checksum_reference:
             raise ValueError(
@@ -78,6 +101,8 @@ class DRDownloader:
             return 1
         bucket_dir = os.path.join(self.bucket, field_name)
         command = f"aws s3 sync {local_path} {bucket_dir} > /dev/null"
+        files, size = field_stats(local_path)
+        self.logger.info(f"Uploading {local_path} ({files} files, {size/1000000}MB)")
         return os.system(command)
 
     def process(self, data):
@@ -89,6 +114,7 @@ class DRDownloader:
         if not os.path.exists(field_path):
             os.makedirs(field_path)
 
+        self.logger.info(f"Downloading field: {field} ({len(rows)} parquets)")
         for index, row in rows.iterrows():
             checksum_reference = row[0]
             link = row[1]

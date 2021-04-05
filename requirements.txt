@@ -1,4 +1,3 @@
-boto3
 click
 requests
 pandas

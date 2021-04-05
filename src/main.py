@@ -1,6 +1,6 @@
 import click
 
-from downloader import DRDownloader
+from .downloader import DRDownloader
 
 
 @click.group()
@@ -23,6 +23,6 @@ def download_data_release(data_release_url, checksum_path, bucket_path, ncores, 
     return
 
 
-if __name__ == "__main__":
+def cmd():
     cli.add_command(download_data_release)
     cli()

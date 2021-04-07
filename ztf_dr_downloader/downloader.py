@@ -11,7 +11,14 @@ from tqdm import tqdm
 from multiprocessing import Pool
 
 
-def generate_md5_checksum(fname, chunksize=4096):
+def generate_md5_checksum(fname: str, chunksize=4096):
+    """
+    Generate md5 checksum with specific checksum.
+
+    :param fname: Name of file to get checksum.
+    :param chunksize: Size to read for each iteration
+    :return: Checksum in hex
+    """
     hash_md5 = hashlib.md5()
     with open(fname, "rb") as f:
         for chunk in iter(lambda: f.read(chunksize), b""):
@@ -20,6 +27,12 @@ def generate_md5_checksum(fname, chunksize=4096):
 
 
 def field_stats(path):
+    """
+    Get total files and total size of a specific field.
+
+    :param path: Path in local machine that point to field
+    :return: Tuple of 2 positions. [0] -> count of files, [1] -> total size in bytes
+    """
     total_size = 0
     files = 0
     for dirpath, dirnames, filenames in os.walk(path):
@@ -31,27 +44,40 @@ def field_stats(path):
 
 
 class DRDownloader:
+    """
+    A class used to get, download and upload Data Releases of ZTF.
+
+    ...
+
+    Attributes:
+        logger: specific logger of class
+        data_release_url: valid url of data release version
+        checksum_path: url/path direction of checksums
+        bucket: S3 bucket to save data release files
+        output_folder: target folder to contain temps files
+        checksums: dataframe that contain parquet urls and checksums
+        uploaded_files: list files that are contained in S3 bucket.
+
+    """
     def __init__(self,
                  data_release_url,
                  checksum_path,
                  bucket,
-                 output_folder="/tmp",
-                 auto_clean=True):
+                 output_folder="/tmp"):
         self.logger = self.init_logging()
         self.data_release_url = data_release_url
         self.checksum_path = checksum_path
         self.bucket = bucket
         self.output_folder = output_folder
-        self.auto_clean = auto_clean
         self.checksums = None
         self.uploaded_files = self.in_s3_files()
 
         self.get_checksums()
 
-    def in_s3_files(self):
+    def in_s3_files(self) -> list:
         """
-
-        :return:
+        Get the list of parquet files in S3 bucket.
+        :return: List of files in S3
         """
         pattern = r"s3://([\w'-]+)/([\w'-]+).*"
         data = re.findall(pattern, self.bucket)
@@ -68,9 +94,10 @@ class DRDownloader:
 
     def init_logging(self, loglevel="INFO"):
         """
+        Init logging format of class
 
-        :param loglevel:
-        :return:
+        :param loglevel: numeric representation of log
+        :return: logger
         """
         numeric_level = getattr(logging, loglevel.upper(), None)
         if not isinstance(numeric_level, int):
@@ -88,8 +115,9 @@ class DRDownloader:
 
     def get_checksums(self) -> pd.DataFrame:
         """
+        Load checksums of all parquets in memory. Also generate urls to download and add a column of field of parquet.
 
-        :return:
+        :return: Dataframe that contain data release information
         """
         def find_field(string):
             found = re.findall(r".*(field[0-9]+).*", string)
@@ -109,10 +137,11 @@ class DRDownloader:
                  link: str,
                  checksum_reference: str) -> None:
         """
+        Download one parquet, verify if checksum of downloaded file is the same of reference checksum.
 
-        :param local_path:
-        :param link:
-        :param checksum_reference:
+        :param local_path: Target folder to download file
+        :param link: File to download
+        :param checksum_reference: Theoretical checksum of file
         :return:
         """
         if os.path.exists(local_path):
@@ -139,10 +168,11 @@ class DRDownloader:
                        local_path: str,
                        field_name: str) -> int:
         """
+        Upload a specific folder to S3 bucket.
 
-        :param local_path:
-        :param field_name:
-        :return:
+        :param local_path: Folder to upload to S3
+        :param field_name: Name of field to upload
+        :return: 1 if is impossible to upload and 0 if there were no errors
         """
         if not self.bucket:
             return 1
@@ -154,8 +184,10 @@ class DRDownloader:
 
     def process(self, data) -> None:
         """
+        Basic method to process one field of data release, download all parquets and finish uploading all files to S3.
+        After that remove all temp files.
 
-        :param data:
+        :param data: Data of one field
         :return:
         """
         field = data[0]
@@ -185,8 +217,8 @@ class DRDownloader:
 
     def run(self, n_proc=10) -> None:
         """
-
-        :param n_proc:
+        Method to start massive parallel download with specific number of process.
+        :param n_proc: Number of process to execute the routine.
         :return:
         """
         pool = Pool(n_proc)

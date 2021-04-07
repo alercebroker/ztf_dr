@@ -11,7 +11,7 @@ setup(
     description="",
     author="ALeRCE Team",
     author_email='contact@alerce.online',
-    # packages=["src"],
+    packages=["ztf_dr_downloader"],
     scripts=["cli/dr"],
     install_requires=required_packages
 )

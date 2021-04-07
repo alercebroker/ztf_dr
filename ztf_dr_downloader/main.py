@@ -1,6 +1,6 @@
 import click
 
-from src.downloader import DRDownloader
+from ztf_dr_downloader.downloader import DRDownloader
 
 
 @click.group()

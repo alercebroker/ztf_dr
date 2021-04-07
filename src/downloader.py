@@ -49,6 +49,10 @@ class DRDownloader:
         self.get_checksums()
 
     def in_s3_files(self):
+        """
+
+        :return:
+        """
         pattern = r"s3://([\w'-]+)/([\w'-]+).*"
         data = re.findall(pattern, self.bucket)
         if len(data) != 1:
@@ -63,6 +67,11 @@ class DRDownloader:
         return files
 
     def init_logging(self, loglevel="INFO"):
+        """
+
+        :param loglevel:
+        :return:
+        """
         numeric_level = getattr(logging, loglevel.upper(), None)
         if not isinstance(numeric_level, int):
             raise ValueError("Invalid log level: %s" % loglevel)
@@ -78,6 +87,10 @@ class DRDownloader:
         return logger
 
     def get_checksums(self) -> pd.DataFrame:
+        """
+
+        :return:
+        """
         def find_field(string):
             found = re.findall(r".*(field[0-9]+).*", string)
             return found[0] if len(found) > 0 else None
@@ -91,7 +104,17 @@ class DRDownloader:
         self.checksums = checksums
         return checksums
 
-    def download(self, local_path, link, checksum_reference):
+    def download(self,
+                 local_path: str,
+                 link: str,
+                 checksum_reference: str) -> None:
+        """
+
+        :param local_path:
+        :param link:
+        :param checksum_reference:
+        :return:
+        """
         if os.path.exists(local_path):
             checksum = generate_md5_checksum(local_path)
             if checksum == checksum_reference:
@@ -112,7 +135,15 @@ class DRDownloader:
                 (local_path, checksum_reference))
         return
 
-    def bulk_upload_s3(self, local_path, field_name) -> int:
+    def bulk_upload_s3(self,
+                       local_path: str,
+                       field_name: str) -> int:
+        """
+
+        :param local_path:
+        :param field_name:
+        :return:
+        """
         if not self.bucket:
             return 1
         bucket_dir = os.path.join(self.bucket, field_name)
@@ -121,7 +152,12 @@ class DRDownloader:
         self.logger.info(f"Uploading {local_path} ({files} files, {size/1000000}MB)")
         return os.system(command)
 
-    def process(self, data):
+    def process(self, data) -> None:
+        """
+
+        :param data:
+        :return:
+        """
         field = data[0]
         rows = data[1]
 
@@ -147,9 +183,15 @@ class DRDownloader:
         os.system(f"rm -rf {field_path}")
         return
 
-    def run(self, n_proc=10):
+    def run(self, n_proc=10) -> None:
+        """
+
+        :param n_proc:
+        :return:
+        """
         pool = Pool(n_proc)
         fields = self.checksums.groupby(["field"])
         for _ in tqdm(pool.imap_unordered(self.process, fields),
                       total=len(fields)):
             pass
+        return

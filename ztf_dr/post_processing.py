@@ -23,6 +23,7 @@ OBJECT_COLUMNS = list(OBJECT_FIELDS.keys())
 
 def get_objects(field_path: str,
                 output_path: str) -> None:
+    field_path = os.path.join(field_path, "*.parquet")
     df = dd.read_parquet(field_path, columns=OBJECT_COLUMNS, engine="pyarrow")
     with ProgressBar():
         df.to_parquet(output_path, schema=OBJECT_SCHEMA)

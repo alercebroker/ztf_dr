@@ -1,5 +1,10 @@
+import os
+
+import boto3
 import dask.dataframe as dd
 import pyarrow as pa
+from dask.diagnostics import ProgressBar
+
 
 OBJECT_FIELDS = {
     'objectid': pa.int64(),
@@ -19,18 +24,28 @@ OBJECT_COLUMNS = list(OBJECT_FIELDS.keys())
 def get_objects(field_path: str,
                 output_path: str) -> None:
     df = dd.read_parquet(field_path, columns=OBJECT_COLUMNS, engine="pyarrow")
-    df = df.compute()
-    df.to_parquet(output_path, schema=OBJECT_SCHEMA)
+    with ProgressBar():
+        df.to_parquet(output_path, schema=OBJECT_SCHEMA)
     return
 
 
-def get_objects_table(data_release_path: str) -> None:
-
+def get_objects_table(bucket_name: str,
+                      dr: str,
+                      fields_prefix: str,
+                      objects_prefix: str,
+                      output_path: str) -> None:
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(bucket_name)
+    fields = set([x.key.split("/")[1] for x in bucket.objects.filter(Prefix=fields_prefix)])
+    objects_files = set([x.key.split("/")[-2] for x in bucket.objects.filter(Prefix=objects_prefix)])
+    for field in fields:
+        print(field)
+        if field not in objects_files:
+            get_objects(os.path.join("s3://", bucket_name, dr, field),
+                        os.path.join(output_path, field))
     return
 
 
 if __name__ == "__main__":
-    print("a")
-    get_objects_table("s3://ztf-data-releases/dr5/field0245/*.parquet", "objects_field0245.parquet")
-    print("b")
-    pass
+    get_objects_table("ztf-data-releases", "dr5", "dr5/field", "dr5/objects", "s3://ztf-data-releases/dr5/objects")
+    print("end")

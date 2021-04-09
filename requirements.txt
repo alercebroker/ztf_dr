@@ -1,7 +1,11 @@
 boto3
 click
+dask
 requests
 pandas
+pyspark
+pyarrow
 wget
 s3fs
 tqdm
+# -e git+https://github.com/alercebroker/lc_classifier#egg=lc_classifier

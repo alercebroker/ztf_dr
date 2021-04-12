@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 
 from P4J import MultiBandPeriodogram
-from ztf_dr.extractors.base import DR_base
 from typing import List
+from ztf_dr.extractors.base import DR_base
 
 
 class DRPeriodExtractor(DR_base):
@@ -53,8 +53,8 @@ class DRPeriodExtractor(DR_base):
         entropy = (-normalized_top_values * np.log(normalized_top_values)).sum()
         significance = 1 - entropy / np.log(entropy_best_n)
 
-        object_features = pd.Series(
-            data=[period_candidate, significance, best_period_band, delta_period_band]
-        )
-        print(object_features)
-        return object_features
+        object_features = {
+            "Multiband_period": period_candidate,
+            "PPE": significance
+        }
+        return pd.Series(object_features)

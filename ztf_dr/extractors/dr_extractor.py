@@ -1,4 +1,5 @@
 import pandas as pd
+
 from lc_classifier.features.core.base import FeatureExtractor
 from typing import List
 from ztf_dr.extractors import (DRGalacticCoordinates, DRGPDRWExtractor, DRMHPSExtractor, DRPeriodExtractor,
@@ -31,6 +32,9 @@ class DataReleaseExtractor(FeatureExtractor):
         for ex in self.extractors:
             df = ex._compute_features(light_curves, features=response)
             response = response.join(df)
+        partial_cols = [x for x in response.columns if x.startswith("_")]
+        for col in partial_cols:
+            del response[col]
         return response
 
     def get_required_keys(self):

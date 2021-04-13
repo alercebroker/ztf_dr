@@ -7,3 +7,5 @@ from .period_extractor import DRPeriodExtractor
 from .power_rate_period import DRPowerRateExtractor
 from .snpm_extractor import DRSNPMExtractor
 from .turbofats_extractor import DRTurboFatsExtractor
+
+from .dr_extractor import DataReleaseExtractor

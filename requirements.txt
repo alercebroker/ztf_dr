@@ -1,11 +1,15 @@
+astropy
 boto3
+celerite2
 click
 dask
+numpy
 requests
 pandas
 pyspark
 pyarrow
 wget
 s3fs
+scipy
 tqdm
-# -e git+https://github.com/alercebroker/lc_classifier#egg=lc_classifier
+-e git+https://github.com/alercebroker/lc_classifier#egg=lc_classifier

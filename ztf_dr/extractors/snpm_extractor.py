@@ -8,9 +8,10 @@ from ztf_dr.extractors.base import DR_base
 
 class DRSNPMExtractor(DR_base, SNParametricModelExtractor):
     def __init__(self):
-        super().__init__()
+        super(DR_base, self).__init__()
+        super(DRSNPMExtractor, self).__init__()
 
-    def _compute(self,  light_curve) -> pd.Series:
+    def _compute(self,  light_curve, **kwargs) -> pd.Series:
         times = light_curve["hmjd"]
         times = times - np.min(times)
 

@@ -17,7 +17,7 @@ class DRPeriodExtractor(DR_base):
     def get_features_keys(self) -> List[str]:
         return ['Multiband_period', 'PPE']
 
-    def _compute(self, light_curve) -> pd.Series:
+    def _compute(self, light_curve, **kwargs) -> pd.Series:
         band = light_curve["filterid"]
         fids = np.full(light_curve["nepochs"], band)
         self.periodogram_computer.set_data(
@@ -55,6 +55,8 @@ class DRPeriodExtractor(DR_base):
 
         object_features = {
             "Multiband_period": period_candidate,
-            "PPE": significance
+            "PPE": significance,
+            "_freq": freq,
+            "_per": per
         }
         return pd.Series(object_features)

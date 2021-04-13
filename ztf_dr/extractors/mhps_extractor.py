@@ -13,7 +13,7 @@ class DRMHPSExtractor(DR_base, MHPSExtractor):
     def get_required_keys(self) -> List[str]:
         return ['hmjd', 'mag', 'magerr']
 
-    def _compute(self, light_curve) -> pd.Series:
+    def _compute(self, light_curve, **kwargs) -> pd.Series:
         mag = light_curve["mag"]
         magerr = light_curve["magerr"]
         time = light_curve["hmjd"]

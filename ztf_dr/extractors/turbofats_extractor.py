@@ -11,13 +11,13 @@ class DRTurboFatsExtractor(DR_base, TurboFatsFeatureExtractor):
         self.feature_space.data_column_names = ["mjd", "mag", "magerr"]
 
     def get_required_keys(self) -> List[str]:
-        return ["object_id", "hmjd", "mag", "magerr"]
+        return ["hmjd", "mag", "magerr"]
 
-    def _compute(self, light_curve):
+    def _compute(self, light_curve: pd.Series, **kwargs) -> pd.Series:
         mag = light_curve["mag"]
         magerr = light_curve["magerr"]
         hmjd = light_curve["hmjd"]
-        oid = light_curve["objectid"]
+        oid = light_curve.name
         df = pd.DataFrame({
             "mag": mag,
             "magerr": magerr,

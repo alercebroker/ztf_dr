@@ -13,7 +13,6 @@ __pycache__
 __pycache__/
 *.py[cod]
 *$py.class
-src/
 # Distribution / packaging
 .Python
 build/

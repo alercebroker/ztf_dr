@@ -1,3 +1,4 @@
+from .base import DR_base
 from .fk_extractor import DRFoldedKimExtractor
 from .galactic_coords import DRGalacticCoordinates
 from .gp_drw import DRGPDRWExtractor

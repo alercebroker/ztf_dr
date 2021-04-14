@@ -1,9 +1,8 @@
-from abc import ABC
+import pandas as pd
 
-import numpy as np
+from abc import ABC
 from lc_classifier.features.core.base import FeatureExtractor
 from typing import List
-import pandas as pd
 
 
 class DR_base(FeatureExtractor, ABC):

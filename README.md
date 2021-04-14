@@ -1,9 +1,8 @@
 [![unittest](https://github.com/alercebroker/ztf_dr/actions/workflows/unittest.yml/badge.svg)](https://github.com/alercebroker/ztf_dr/actions/workflows/unittest.yml)
-
 [![codecov](https://codecov.io/gh/alercebroker/ztf_dr/branch/master/graph/badge.svg)](https://codecov.io/gh/alercebroker/ztf_dr)
 
 
-# ZTF DR Downloader
+# ZTF DR
 
 ## Installation
 

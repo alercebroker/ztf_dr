@@ -1,2 +1,2 @@
-from . import downloader
-from .downloader import *
+from .collectors import downloader
+from ztf_dr.collectors.downloader import *

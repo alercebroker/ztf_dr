@@ -134,3 +134,4 @@ dmypy.json
 .pyre/
 
 dr_parser_wrapper.c*
+htmlcov/

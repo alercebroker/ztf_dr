@@ -43,7 +43,7 @@ dr get-objects <your-bucket> <data-release>
 ```
 
 ### Get features of data release
-You can also obtain characteristics of the light curves from the Data Release (based on [Sánchez-Sáez et al. 2020](https://arxiv.org/abs/2008.03311)), This can be very expensive but can be executed on different machines at the same time with slurm (on work).
+You can also obtain characteristics of the light curves from the Data Release (based on [code](https://github.com/alercebroker/lc_classifier) for [Sánchez-Sáez et al. 2020](https://arxiv.org/abs/2008.03311)), This can be very expensive but can be executed on different machines at the same time with slurm (on work).
 
 Run for only one field:
 

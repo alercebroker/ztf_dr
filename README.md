@@ -21,9 +21,11 @@ pip install .
 
 ## Usage
 
+### Downloading a Data Release of ZTF (>= DR5)
+
 1. Locate the data release that you need download. i.e: https://irsa.ipac.caltech.edu/data/ZTF/lc_dr5/
 2. Locate the checksum file. i.e: https://irsa.ipac.caltech.edu/data/ZTF/lc_dr5/checksums.md5
-3. Execute for 5 parallel process:
+3. Execute for 5 parallel process (arg `-n`):
 
 ```
 dr download-data-release https://irsa.ipac.caltech.edu/data/ZTF/lc_dr5/ \
@@ -32,6 +34,37 @@ dr download-data-release https://irsa.ipac.caltech.edu/data/ZTF/lc_dr5/ \
     -n 5
 ```
 4. Wait calmly because there is a lot of data!
+
+### Remove light curve of DR
+If you want to get the Data Release metadata without the light curves (to do xmatch or another operation), you can get it using the following command (you must have the data stored somewhere e.g S3):
+
+```
+dr get-objects <your-bucket> <data-release>
+```
+
+### Get features of data release
+You can also obtain characteristics of the light curves from the Data Release (based on [Sánchez-Sáez et al. 2020](https://arxiv.org/abs/2008.03311)), This can be very expensive but can be executed on different machines at the same time with slurm (on work).
+
+Run for only one field:
+
+```
+dr get-features <input-file> <output-file>
+```
+ Or compute in your own code:
+
+```python
+import pandas as pd
+
+from ztf_dr.extractors import DataReleaseExtractor
+
+input_file = "path_to_pallet_town"
+output_file = "path_to_drink_a_beer"
+
+extractor = DataReleaseExtractor()
+zone = pd.read_parquet(input_file)
+features = extractor.compute_features(zone)
+features.to_parquet(output_file)
+```
 
 ## Maintenance
 

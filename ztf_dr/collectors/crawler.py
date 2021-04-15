@@ -3,8 +3,8 @@ import requests
 import re
 import os
 
-REGEX_STR = r'<img.*> <a href="(ztf.*)">.*</a>\s+(\S+ \S+)\s+(\d*.*)\n'
-REGEX_FOLDER = r'<img.*> <a href="(*/)">.*</a>\s+(\S+ \S+)\s+(\d*.*)\n'
+REGEX_STR = r'<img.*> <a href="(ztf.*)">.*</a>\s+(\S+ \S+)\s+(\d*.*)'
+REGEX_FOLDER = r'<img.*> <a href="(.*)">.*</a>\s+(\S+ \S+)\s+(\d*.*)\n'
 REGEX_SIZE = r'(\d+)\s*(\w+)'
 UNITS = {"B": 1, "K": 10**3, "M": 10**6, "G": 10**9, "T": 10**12}
 
@@ -18,8 +18,9 @@ def parse_size(size: str) -> int:
     """
     data = re.findall(REGEX_SIZE, size)
     if len(data) == 1:
-        size, unit = data[0], data[1]
-        return int(size * UNITS[unit])
+        data = data[0]
+        size, unit = int(data[0]), data[1]
+        return size * UNITS[unit]
     return -1
 
 
@@ -36,6 +37,10 @@ def is_folder(string: str) -> bool:
     return string.endswith("/")
 
 
+def get_content(url):
+    return requests.get(url).content.decode("utf-8")
+
+
 def get_data_release(data_release_url: str) -> pd.DataFrame:
     """
     Function that allows you to obtain the links to the different files of the data release, with their respective
@@ -45,7 +50,7 @@ def get_data_release(data_release_url: str) -> pd.DataFrame:
     :param data_release_url: URL to data release. For example: https://irsa.ipac.caltech.edu/data/ZTF/lc_dr5
     :return: Dataframe that contain information of data release.
     """
-    response = requests.get(data_release_url).content.decode("utf-8")
+    response = get_content(data_release_url)
     files = re.findall(REGEX_FOLDER, response)
     df = pd.DataFrame(files, columns=["file", "date", "size"])
     df["file"] = df["file"].apply(lambda x: os.path.join(data_release_url, x))

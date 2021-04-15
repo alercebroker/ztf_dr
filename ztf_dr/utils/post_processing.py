@@ -1,12 +1,9 @@
 import os
-
 import boto3
 import dask.dataframe as dd
-import pandas as pd
 import pyarrow as pa
 
 from dask.diagnostics import ProgressBar
-from lc_classifier.features import CustomHierarchicalExtractor
 
 OBJECT_FIELDS = {
     'objectid': pa.int64(),
@@ -42,18 +39,10 @@ def get_objects_table(bucket_name: str,
     fields = set([x.key.split("/")[1] for x in bucket.objects.filter(Prefix=fields_prefix)])
     objects_files = set([x.key.split("/")[-2] for x in bucket.objects.filter(Prefix=objects_prefix)])
     for field in fields:
-        print(field)
         if field not in objects_files:
             get_objects(os.path.join("s3://", bucket_name, dr, field),
                         os.path.join(output_path, field))
     return
-
-
-def compute_features(field_path):
-    data = pd.read_parquet(field_path)
-    
-    extractor = CustomHierarchicalExtractor()
-    pass
 
 
 if __name__ == "__main__":

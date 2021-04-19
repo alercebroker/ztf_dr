@@ -82,7 +82,6 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
     dr_ext = DataReleaseExtractor()
 
     for file in my_partition:
-        print(file)
         output_file = re.findall(r".*/(field.*)", file)[0]
         output_file = os.path.join(bucket_output, output_file)
 

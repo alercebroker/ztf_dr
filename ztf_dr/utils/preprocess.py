@@ -6,6 +6,7 @@ import os
 
 from multiprocessing import Pool
 from tqdm import tqdm
+from ztf_dr.utils import existing_in_bucket
 
 
 class Preprocessor:
@@ -68,6 +69,10 @@ class Preprocessor:
             "output_file": [os.path.join(output_bucket, o) for o in output]
         })
 
+        existing_files = existing_in_bucket(output_bucket)
+        print(data.shape)
+        data = data[~data["output_file"].isin(existing_files)]
+        print(data.shape)
         if n_cores == 1:
             data.apply(lambda x: self.apply(x["input_file"], x["output_file"]), axis=1)
 

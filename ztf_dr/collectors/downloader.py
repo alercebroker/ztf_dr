@@ -223,7 +223,6 @@ class DRDownloader:
         """
         pool = Pool(n_proc)
         fields = self.checksums.groupby(["field"])
-        for _ in tqdm(pool.imap_unordered(self.process, fields),
-                      total=len(fields)):
+        for _ in tqdm(pool.imap_unordered(self.process, fields), total=len(fields)):
             pass
         return

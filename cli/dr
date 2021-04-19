@@ -2,7 +2,7 @@
 
 def main():
     try:
-        from ztf_dr_downloader.main import cmd
+        from ztf_dr.main import cmd
 
     except ImportError as exc:
         raise ImportError from exc

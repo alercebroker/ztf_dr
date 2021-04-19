@@ -1,4 +1,5 @@
 import click
+import logging
 import pandas as pd
 import re
 import os
@@ -8,6 +9,11 @@ from ztf_dr.extractors import DataReleaseExtractor
 from ztf_dr.utils.post_processing import get_objects_table
 from ztf_dr.utils.preprocess import Preprocessor
 from ztf_dr.utils import existing_in_bucket, split_list
+
+
+logging.basicConfig(level="INFO",
+                    format='%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
 
 
 @click.group()
@@ -72,13 +78,15 @@ def do_preprocess(bucket_name: str, bucket_prefix: str, bucket_output: str, n_co
 @click.argument("partition", type=int)
 @click.option("--total-cores", "-t", default=300)
 def compute_features(bucket_input: str, bucket_output: str, partition: int, total_cores: int):
+    logging.info("Initializing features computer")
     data_release = existing_in_bucket(bucket_input)
     existing_features = existing_in_bucket(bucket_output)
 
     partitions = split_list(data_release, total_cores)
     my_partition = partitions[partition]
     del partitions
-    my_partition = my_partition[:10]
+
+    logging.info(f"Partition {partition} get {len(my_partition)} files")
     dr_ext = DataReleaseExtractor()
 
     for file in my_partition:
@@ -86,8 +94,9 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
         output_file = os.path.join(bucket_output, output_file)
 
         if output_file in existing_features:
-            print(f"already exists {file}")
+            logging.info(f"already exists {file}")
             continue
+        logging.info(f"Processing {file}")
         data = pd.read_parquet(file)
         features = dr_ext.compute_features(data)
         features.to_parquet(output_file)

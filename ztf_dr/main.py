@@ -1,10 +1,13 @@
 import click
 import pandas as pd
+import re
+import os
 
 from ztf_dr.collectors.downloader import DRDownloader
 from ztf_dr.extractors import DataReleaseExtractor
 from ztf_dr.utils.post_processing import get_objects_table
 from ztf_dr.utils.preprocess import Preprocessor
+from ztf_dr.utils import existing_in_bucket, split_list
 
 
 @click.group()
@@ -61,6 +64,34 @@ def get_features(input_file, output_file):
 def do_preprocess(bucket_name: str, bucket_prefix: str, bucket_output: str, n_cores: int):
     pr = Preprocessor(limit_epochs=20, mag_error_tolerance=1.0, catflags_filter=0)
     pr.preprocess_bucket(bucket_name, bucket_prefix, bucket_output, n_cores=n_cores)
+
+
+@click.command()
+@click.argument("bucket_input", type=str)
+@click.argument("bucket_output", type=str)
+@click.argument("partition", type=int)
+@click.option("--total-cores", "-t", default=300)
+def compute_features(bucket_input: str, bucket_output: str, partition: int, total_cores: int):
+    data_release = existing_in_bucket(bucket_input)
+    existing_features = existing_in_bucket(bucket_output)
+
+    partitions = split_list(data_release, total_cores)
+    my_partition = partitions[partition]
+    del partitions
+    my_partition = my_partition[:10]
+    dr_ext = DataReleaseExtractor()
+
+    for file in my_partition:
+        print(file)
+        output_file = re.findall(r".*/(field.*)", file)[0]
+        output_file = os.path.join(bucket_output, output_file)
+
+        if output_file in existing_features:
+            print(f"already exists {file}")
+            continue
+        data = pd.read_parquet(file)
+        features = dr_ext.compute_features(data)
+        features.to_parquet(output_file)
     pass
 
 
@@ -69,6 +100,7 @@ def cmd():
     cli.add_command(get_objects)
     cli.add_command(get_features)
     cli.add_command(do_preprocess)
+    cli.add_command(compute_features)
     cli()
 
 

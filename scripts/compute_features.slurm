@@ -6,7 +6,7 @@
 #SBATCH --output=/home/apps/astro/alercebroker/logs/dr_features_%A_%a.txt
 #SBATCH --error=/home/apps/astro/alercebroker/logs/dr_features_%A_%a.err
 #SBATCH --mail-user=javier.arredondo.c@usach.cl
-#SBATCH --mem-per-cpu=5432
+#SBATCH --mem-per-cpu=4299
 
 ml Python/3.7.2
 source ~/venvs/env/bin/activate

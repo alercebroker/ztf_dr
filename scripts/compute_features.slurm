@@ -22,4 +22,4 @@ export OMP_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 
-python3 ../ztf_dr/main.py compute-features $input_bucket $output_bucket $task_partition -t 3
+python3 ../ztf_dr/main.py compute-features $input_bucket $output_bucket $task_partition -t 300 -p

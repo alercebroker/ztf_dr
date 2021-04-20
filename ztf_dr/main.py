@@ -77,7 +77,8 @@ def do_preprocess(bucket_name: str, bucket_prefix: str, bucket_output: str, n_co
 @click.argument("bucket_output", type=str)
 @click.argument("partition", type=int)
 @click.option("--total-cores", "-t", default=300)
-def compute_features(bucket_input: str, bucket_output: str, partition: int, total_cores: int):
+@click.option("--preprocess", "-p", is_flag=True, default=False, help="Do preprocess")
+def compute_features(bucket_input: str, bucket_output: str, partition: int, total_cores: int, preprocess: bool):
     logging.info("Initializing features computer")
     data_release = existing_in_bucket(bucket_input)
     existing_features = existing_in_bucket(bucket_output)
@@ -88,7 +89,7 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
 
     logging.info(f"Partition {partition} get {len(my_partition)} files")
     dr_ext = DataReleaseExtractor()
-
+    dr_pre = Preprocessor(limit_epochs=20, mag_error_tolerance=1.0, catflags_filter=0)
     for file in my_partition:
         output_file = re.findall(r".*/(field.*)", file)[0]
         output_file = os.path.join(bucket_output, output_file)
@@ -98,6 +99,8 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
             continue
         logging.info(f"Processing {file}")
         data = pd.read_parquet(file)
+        if preprocess:
+            data = dr_pre.run(data)
         features = dr_ext.compute_features(data)
         features.to_parquet(output_file)
     pass

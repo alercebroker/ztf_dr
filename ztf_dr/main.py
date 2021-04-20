@@ -8,7 +8,7 @@ from ztf_dr.collectors.downloader import DRDownloader
 from ztf_dr.extractors import DataReleaseExtractor
 from ztf_dr.utils.post_processing import get_objects_table
 from ztf_dr.utils.preprocess import Preprocessor
-from ztf_dr.utils import existing_in_bucket, split_list
+from ztf_dr.utils import existing_in_bucket, split_list, monitor
 
 
 logging.basicConfig(level="INFO",
@@ -78,7 +78,12 @@ def do_preprocess(bucket_name: str, bucket_prefix: str, bucket_output: str, n_co
 @click.argument("partition", type=int)
 @click.option("--total-cores", "-t", default=300)
 @click.option("--preprocess", "-p", is_flag=True, default=False, help="Do preprocess")
-def compute_features(bucket_input: str, bucket_output: str, partition: int, total_cores: int, preprocess: bool):
+@click.option("--use-monitor", "-m", is_flag=True, default=False, help="Measure uses of resources using psrecord")
+@click.option("--path-monitor", "-mp", type=str, default="/home/apps/astro/alercebroker/resources/dr")
+def compute_features(bucket_input: str, bucket_output: str, partition: int, total_cores: int, preprocess: bool,
+                     use_monitor: bool, path_monitor: str):
+    if use_monitor:
+        monitor(path_monitor, f"compute_features_{partition}", log=True, plot=False)
     logging.info("Initializing features computer")
     data_release = existing_in_bucket(bucket_input)
     existing_features = existing_in_bucket(bucket_output)

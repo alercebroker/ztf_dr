@@ -101,6 +101,10 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
         data = pd.read_parquet(file)
         if preprocess:
             data = dr_pre.run(data)
+
+        if data is None:
+            continue
+
         features = dr_ext.compute_features(data)
         features.to_parquet(output_file)
     pass

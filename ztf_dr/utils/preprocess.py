@@ -44,6 +44,8 @@ class Preprocessor:
 
     def run(self, dataframe: pd.DataFrame):
         filtered = dataframe.apply(self.preprocess, axis=1)
+        if len(filtered) == 0:
+            return None
         filtered = filtered[filtered["flag"]]
         del filtered["flag"]
         return filtered
@@ -51,7 +53,8 @@ class Preprocessor:
     def apply(self, input_path: str, output_path: str):
         dataframe = pd.read_parquet(input_path)
         filtered = self.run(dataframe)
-        filtered.to_parquet(output_path)
+        if filtered is not None:
+            filtered.to_parquet(output_path)
         return
 
     def _apply(self, row):

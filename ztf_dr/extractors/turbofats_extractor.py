@@ -26,6 +26,6 @@ class DRTurboFatsExtractor(DR_base, TurboFatsFeatureExtractor):
         df["index"] = oid
         df.set_index("index", inplace=True)
         object_features = self.feature_space.calculate_features(df)
-        if len(object_features):
-            return object_features.squeeze()
-        return None
+        if len(object_features) == 0:
+            return self.nan_series()
+        return pd.Series(object_features.squeeze())

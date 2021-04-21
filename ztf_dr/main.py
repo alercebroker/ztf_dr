@@ -94,9 +94,12 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
     my_partition = partitions[partition]
     del partitions
     del data_release
-
+    logging.info("Local partition read")
     existing_features = existing_in_bucket(bucket_output)
-    existing_features = [x for x in existing_features if x.split("/")[-1] in [y.split("/")[-1] for y in my_partition]]
+    existing_features = [
+        x for x in existing_features
+        if x.split("/")[-1] in [y.split("/")[-1] for y in my_partition]
+    ]
 
     logging.info(f"Partition {partition} get {len(existing_features)}/{len(my_partition)} files")
 
@@ -119,7 +122,8 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
 
         features = dr_ext.compute_features(data)
         del data
-        features.to_parquet(output_file)
+        if features is not None:
+            features.to_parquet(output_file)
         del features
     pass
 

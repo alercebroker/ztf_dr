@@ -86,23 +86,26 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
         monitor(path_monitor, f"compute_features_{partition}", log=True, plot=False)
     logging.info("Initializing features computer")
     data_release = existing_in_bucket(bucket_input)
-    existing_features = existing_in_bucket(bucket_output)
 
     partitions = split_list(data_release, total_cores)
     my_partition = partitions[partition]
     del partitions
+    del data_release
 
-    logging.info(f"Partition {partition} get {len(my_partition)} files")
+    existing_features = existing_in_bucket(bucket_output)
+    existing_features = set(existing_features).difference(set(my_partition))
+
+    logging.info(f"Partition {partition} get {len(existing_features)}/{len(my_partition)} files")
     dr_ext = DataReleaseExtractor()
     dr_pre = Preprocessor(limit_epochs=20, mag_error_tolerance=1.0, catflags_filter=0)
-    for file in my_partition:
+    for index, file in enumerate(my_partition):
         output_file = re.findall(r".*/(field.*)", file)[0]
         output_file = os.path.join(bucket_output, output_file)
 
         if output_file in existing_features:
-            logging.info(f"already exists {file}")
+            logging.info(f"{index}/{len(my_partition)} already exists {file}")
             continue
-        logging.info(f"Processing {file}")
+        logging.info(f"{index}/{len(my_partition)} processing {file}")
         data = pd.read_parquet(file)
         if preprocess:
             data = dr_pre.run(data)
@@ -111,7 +114,9 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
             continue
 
         features = dr_ext.compute_features(data)
+        del data
         features.to_parquet(output_file)
+        del features
     pass
 
 

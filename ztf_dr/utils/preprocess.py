@@ -43,12 +43,12 @@ class Preprocessor:
         return dataframe
 
     def run(self, dataframe: pd.DataFrame):
-        filtered = dataframe.apply(self.preprocess, axis=1)
-        if len(filtered) == 0:
+        dataframe = dataframe.apply(self.preprocess, axis=1)
+        if len(dataframe) == 0:
             return None
-        filtered = filtered[filtered["flag"]]
-        del filtered["flag"]
-        return filtered
+        dataframe = dataframe[dataframe["flag"]]
+        del dataframe["flag"]
+        return dataframe
 
     def apply(self, input_path: str, output_path: str):
         dataframe = pd.read_parquet(input_path)

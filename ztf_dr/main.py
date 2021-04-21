@@ -85,7 +85,7 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
     if use_monitor:
         monitor(path_monitor, f"compute_features_{partition}", log=True, plot=False)
     logging.info("Initializing features computer")
-    data_release = existing_in_bucket(bucket_input)
+    data_release = sorted(existing_in_bucket(bucket_input))
 
     partitions = split_list(data_release, total_cores)
     my_partition = partitions[partition]
@@ -93,9 +93,10 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
     del data_release
 
     existing_features = existing_in_bucket(bucket_output)
-    existing_features = set(existing_features).difference(set(my_partition))
+    existing_features = [x for x in existing_features if x.split("/")[-1] in [y.split("/")[-1] for y in my_partition]]
 
     logging.info(f"Partition {partition} get {len(existing_features)}/{len(my_partition)} files")
+
     dr_ext = DataReleaseExtractor()
     dr_pre = Preprocessor(limit_epochs=20, mag_error_tolerance=1.0, catflags_filter=0)
     for index, file in enumerate(my_partition):

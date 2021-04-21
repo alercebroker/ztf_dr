@@ -67,8 +67,11 @@ def get_features(input_file, output_file):
 @click.argument("bucket_prefix", type=str)
 @click.argument("bucket_output", type=str)
 @click.option("--n-cores", "-n", default=2)
-def do_preprocess(bucket_name: str, bucket_prefix: str, bucket_output: str, n_cores: int):
-    pr = Preprocessor(limit_epochs=20, mag_error_tolerance=1.0, catflags_filter=0)
+@click.option("--limit-epochs", "-l", default=20)
+@click.option("--mag-error-tolerance", "-t", default=1.0)
+def do_preprocess(bucket_name: str, bucket_prefix: str, bucket_output: str, n_cores: int, limit_epochs: int,
+                  mag_error_tolerance: float):
+    pr = Preprocessor(limit_epochs=limit_epochs, mag_error_tolerance=mag_error_tolerance, catflags_filter=0)
     pr.preprocess_bucket(bucket_name, bucket_prefix, bucket_output, n_cores=n_cores)
 
 

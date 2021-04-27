@@ -4,9 +4,9 @@ import dask.dataframe as dd
 import pandas as pd
 import pyarrow as pa
 
-from dask.diagnostics import ProgressBar
 from tqdm import tqdm
-
+from dask.diagnostics import ProgressBar
+from multiprocessing import Pool, cpu_count
 
 OBJECT_FIELDS = {
     'objectid': pa.int64(),
@@ -48,7 +48,7 @@ def get_objects_table(bucket_name: str,
     return
 
 
-def get_objects_reference(input_file: str, output_file: str, extension="parquet") -> None:
+def get_objects_reference(input_file: str, output_file: str, extension="csv") -> None:
     df = pd.read_parquet(input_file, columns=OBJECT_COLUMNS, engine="pyarrow")
     df["link"] = input_file
     output_file = f"{output_file}.{extension}"
@@ -61,10 +61,12 @@ def get_objects_reference(input_file: str, output_file: str, extension="parquet"
 
 def get_objects_table_with_reference(bucket_name: str,
                                      dr: str,
-                                     objects_prefix: str) -> None:
+                                     objects_prefix: str,
+                                     n_cores: int = 3) -> None:
     s3 = boto3.resource('s3')
     bucket = s3.Bucket(bucket_name)
     formatter = lambda x: f"{x[-2]}/{x[-1].split('.')[0]}"
+
     files = set([
         formatter(x.key.split("/"))
         for x in bucket.objects.filter(Prefix=f"{dr}/raw") if len(x.key.split("/")[-1]) > 1 and x.key.endswith("parquet")
@@ -75,11 +77,19 @@ def get_objects_table_with_reference(bucket_name: str,
         for x in bucket.objects.filter(Prefix=objects_prefix) if len(x.key.split("/")[-1]) > 1
     ])
 
-    for file in tqdm(files):
-        if files not in existing_files:
+    to_process = [(os.path.join("s3://", bucket_name, dr, "raw", f"{f}.parquet"),
+                   os.path.join("s3://", bucket_name, dr, "objects_reference", f))
+                  for f in files if f not in existing_files]
+    if n_cores is None:
+        n_cores = cpu_count()
+
+    with Pool(n_cores) as p:
+        p.starmap(get_objects_reference, to_process)
+    """for file in tqdm(files):
+        if file not in existing_files:
             input_bucket_file = os.path.join("s3://", bucket_name, dr, "raw", file)
             output_bucket_file = os.path.join("s3://", bucket_name, dr, "objects_reference", file)
-            get_objects_reference(f"{input_bucket_file}.parquet", output_bucket_file, extension="csv")
+            get_objects_reference(f"{input_bucket_file}.parquet", output_bucket_file, extension="csv")"""
     return
 
 

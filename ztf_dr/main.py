@@ -6,7 +6,7 @@ import os
 
 from ztf_dr.collectors.downloader import DRDownloader
 from ztf_dr.extractors import DataReleaseExtractor
-from ztf_dr.utils.post_processing import get_objects_table
+from ztf_dr.utils.post_processing import get_objects_table, get_objects_table_with_reference
 from ztf_dr.utils.preprocess import Preprocessor
 from ztf_dr.utils import existing_in_bucket, split_list, monitor
 
@@ -48,6 +48,16 @@ def get_objects(bucket_name, data_release, prefix_field):
                       prefix_field,
                       f"{data_release}/objects",
                       f"s3://{bucket_name}/{data_release}/objects")
+    return
+
+
+@click.command()
+@click.argument("bucket_name", type=str)
+@click.argument("data_release", type=str)
+def get_objects_with_reference(bucket_name, data_release):
+    get_objects_table_with_reference(bucket_name,
+                                     data_release,
+                                     f"{data_release}/objects_reference")
     return
 
 
@@ -131,6 +141,7 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
 def cmd():
     cli.add_command(download_data_release)
     cli.add_command(get_objects)
+    cli.add_command(get_objects_with_reference)
     cli.add_command(get_features)
     cli.add_command(do_preprocess)
     cli.add_command(compute_features)

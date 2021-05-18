@@ -8,6 +8,7 @@ from ztf_dr.collectors.downloader import DRDownloader
 from ztf_dr.extractors import DataReleaseExtractor
 from ztf_dr.utils.post_processing import get_objects_table, get_objects_table_with_reference
 from ztf_dr.utils.preprocess import Preprocessor
+from ztf_dr.utils.load_psql import load_csv_to_psql
 from ztf_dr.utils import existing_in_bucket, split_list, monitor
 
 
@@ -137,6 +138,15 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
         del features
     pass
 
+@click.command()
+@click.argument("bucket_name", type=str)
+@click.argument("datarelease", type=str)
+@click.option("--dbname", "-t", default="datarelease")
+@click.option("--user", default="postgres")
+@click.option("--password", default="root")
+@click.option("--host", default="127.0.0.1")
+def load_psql(bucket_name: str, datarelease: str, dbname: str, user: str, password: str, host: str):
+    load_csv_to_psql(bucket_name, datarelease, dbname, user, password, host)
 
 def cmd():
     cli.add_command(download_data_release)
@@ -145,6 +155,7 @@ def cmd():
     cli.add_command(get_features)
     cli.add_command(do_preprocess)
     cli.add_command(compute_features)
+    cli.add_command(load_psql)
     cli()
 
 

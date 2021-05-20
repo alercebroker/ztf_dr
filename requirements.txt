@@ -11,6 +11,7 @@ wget
 s3fs
 scipy
 tqdm
+pymongo
 
 
 -e git+https://git@github.com/alercebroker/turbo-fats#egg=turbofats

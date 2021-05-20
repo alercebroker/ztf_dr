@@ -9,6 +9,7 @@ from ztf_dr.extractors import DataReleaseExtractor
 from ztf_dr.utils.post_processing import get_objects_table, get_objects_table_with_reference
 from ztf_dr.utils.preprocess import Preprocessor
 from ztf_dr.utils.load_psql import load_csv_to_psql
+from ztf_dr.utils.load_mongo import init_mongo, insert_data
 from ztf_dr.utils import existing_in_bucket, split_list, monitor
 
 
@@ -138,6 +139,7 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
         del features
     pass
 
+
 @click.command()
 @click.argument("bucket_name", type=str)
 @click.argument("datarelease", type=str)
@@ -148,6 +150,30 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
 def load_psql(bucket_name: str, datarelease: str, dbname: str, user: str, password: str, host: str):
     load_csv_to_psql(bucket_name, datarelease, dbname, user, password, host)
 
+
+@click.command()
+@click.argument("mongo_uri", type=str)
+@click.argument("mongo_database", type=str)
+@click.argument("mongo_collection", type=str)
+@click.argument("s3_bucket", type=str)
+@click.option("--n-cores", "-n", default=1)
+@click.option("--user", "-u", default="")
+@click.option("--password", "-p", default="")
+@click.option("--batch-size", "-b", default=100000)
+def load_mongo(mongo_uri: str, mongo_database: str, mongo_collection: str, s3_bucket: str, n_cores: int,user: str, password: str,
+               batch_size: int):
+    logger = logging.getLogger("load_mongo")
+    logger.setLevel("INFO")
+    logging.basicConfig(format='%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S', level="INFO")
+    file = logging.FileHandler("load_mongo.log")
+    logger.addHandler(file)
+    logger.info("Init now")
+
+    init_mongo(mongo_uri, mongo_database, mongo_collection)
+    insert_data(s3_bucket, mongo_uri, mongo_database, mongo_collection, batch_size=batch_size, n_cores=n_cores)
+
+
 def cmd():
     cli.add_command(download_data_release)
     cli.add_command(get_objects)
@@ -156,6 +182,7 @@ def cmd():
     cli.add_command(do_preprocess)
     cli.add_command(compute_features)
     cli.add_command(load_psql)
+    cli.add_command(load_mongo)
     cli()
 
 

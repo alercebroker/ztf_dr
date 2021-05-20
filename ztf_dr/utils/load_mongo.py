@@ -96,33 +96,25 @@ def insert_data(s3_url_bucket: str,
             p.starmap(s3_parquet_to_mongo, args)
 
 
-if __name__ == "__main__":
-    print("Don't use me :(")
-
+def init_mongo(mongo_uri: str, mongo_database: str, mongo_collection: str):
     logger = logging.getLogger("load_mongo")
-    logger.setLevel("INFO")
-
-    logging.basicConfig(format='%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S', level="INFO")
-
-    file = logging.FileHandler("load_mongo.log")
-    logger.addHandler(file)
-    logger.info("Init now")
-
-    with pymongo.MongoClient("localhost", serverSelectionTimeoutMS=10000) as mongo_client:
-        db = mongo_client['default']
-        collection = db["objects"]
-        resp = collection.create_index([("nepochs", 1)])
+    with pymongo.MongoClient(mongo_uri, serverSelectionTimeoutMS=10000) as _mongo_client:
+        _db = _mongo_client[mongo_database]
+        _collection = _db[mongo_collection]
+        resp = _collection.create_index([("nepochs", 1)])
         logger.info(f"Index response: {resp}")
-        resp = collection.create_index([("objectid", 1)])
+        resp = _collection.create_index([("objectid", 1)])
         logger.info(f"Index response: {resp}")
-        resp = collection.create_index([("filterid", "hashed")])
+        resp = _collection.create_index([("filterid", "hashed")])
         logger.info(f"Index response: {resp}")
-        resp = collection.create_index([("fieldid", 1)])
+        resp = _collection.create_index([("fieldid", 1)])
         logger.info(f"Index response: {resp}")
-        resp = collection.create_index([("rcid", 1)])
+        resp = _collection.create_index([("rcid", 1)])
         logger.info(f"Index response: {resp}")
         # http://strakul.blogspot.com/2019/07/data-science-mongodb-sky-searches-with.html
-        resp = collection.create_index([("loc", "2dsphere")])
+        resp = _collection.create_index([("loc", "2dsphere")])
         logger.info(f"Index response: {resp}")
-        insert_data("s3://ztf-data-releases/dr5/raw/field", n_cores=2)
+
+
+if __name__ == "__main__":
+    print("Don't use me :(")

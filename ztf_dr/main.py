@@ -157,11 +157,8 @@ def load_psql(bucket_name: str, datarelease: str, dbname: str, user: str, passwo
 @click.argument("mongo_collection", type=str)
 @click.argument("s3_bucket", type=str)
 @click.option("--n-cores", "-n", default=1)
-@click.option("--user", "-u", default="")
-@click.option("--password", "-p", default="")
 @click.option("--batch-size", "-b", default=100000)
-def load_mongo(mongo_uri: str, mongo_database: str, mongo_collection: str, s3_bucket: str, n_cores: int,user: str, password: str,
-               batch_size: int):
+def load_mongo(mongo_uri: str, mongo_database: str, mongo_collection: str, s3_bucket: str, n_cores: int, batch_size: int):
     logger = logging.getLogger("load_mongo")
     logger.setLevel("INFO")
     logging.basicConfig(format='%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s',

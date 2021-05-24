@@ -1,10 +1,11 @@
 import boto3
+import logging
 import numpy as np
 import pandas as pd
 import pymongo
-import logging
 import os
 
+from typing import List
 from multiprocessing import Pool
 from six.moves.urllib import parse
 from ztf_dr.utils.preprocess import Preprocessor
@@ -15,20 +16,15 @@ def get_batches(data: pd.DataFrame, batch_size=100000):
     return batches
 
 
-def insert_batch(data: pd.DataFrame, indexes: list or np.ndarray, mongo_collection: pymongo.collection.Collection):
+def insert_batch(data: pd.DataFrame, indexes: List or np.ndarray, mongo_collection: pymongo.collection.Collection):
     batch = data.loc[indexes]
     records = list(batch.T.to_dict().values())
     total_records = len(records)
-    for i in range(total_records):
-        records[i]["hmjd"] = records[i]["hmjd"].tolist()
-        records[i]["mag"] = records[i]["mag"].tolist()
-        records[i]["magerr"] = records[i]["magerr"].tolist()
-
     mongo_collection.insert_many(records)
     return total_records
 
 
-def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, batch_size: int = 100000):
+def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, batch_size: int = 10000):
     input_file = os.path.join("s3://", bucket_name, filename)
     preprocessor = Preprocessor(limit_epochs=1)
     df = pd.read_parquet(input_file)
@@ -51,6 +47,11 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
     del df["objra"]
     del df["objdec"]
 
+    df.rename(columns={"objectid": "_id"}, inplace=True)
+
+    for col in ["mag", "magerr", "hmjd"]:
+        df[col] = df[col].map(lambda x: x.tobytes())
+
     indexes_batches = get_batches(df, batch_size=batch_size)
 
     total_inserted = 0
@@ -61,7 +62,7 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
         for batch in indexes_batches:
             inserted = insert_batch(df, batch, collection)
             total_inserted += inserted
-
+            break
     logger.info(f"[PID {os.getpid()}] Inserted {total_inserted: >7} from {filename}")
     return total_inserted
 
@@ -90,10 +91,20 @@ def insert_data(s3_url_bucket: str,
     if n_cores == 1:
         for f in files:
             s3_parquet_to_mongo(bucket_name, f, mongo_config, batch_size=batch_size)
+            break
     elif n_cores > 1:
         args = [(bucket_name, f, mongo_config, batch_size) for f in files]
         with Pool(n_cores) as p:
             p.starmap(s3_parquet_to_mongo, args)
+
+
+def drop_mongo(mongo_uri: str, mongo_database: str, mongo_collection: str):
+    logger = logging.getLogger("load_mongo")
+    with pymongo.MongoClient(mongo_uri) as _mongo_client:
+        logger.info(f"Dropping {mongo_database}/{mongo_collection}")
+        _db = _mongo_client[mongo_database]
+        _col = _db[mongo_collection]
+        _col.drop()
 
 
 def init_mongo(mongo_uri: str, mongo_database: str, mongo_collection: str):

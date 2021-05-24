@@ -9,7 +9,7 @@ from ztf_dr.extractors import DataReleaseExtractor
 from ztf_dr.utils.post_processing import get_objects_table, get_objects_table_with_reference
 from ztf_dr.utils.preprocess import Preprocessor
 from ztf_dr.utils.load_psql import load_csv_to_psql
-from ztf_dr.utils.load_mongo import init_mongo, insert_data
+from ztf_dr.utils.load_mongo import init_mongo, insert_data, drop_mongo
 from ztf_dr.utils import existing_in_bucket, split_list, monitor
 
 
@@ -157,7 +157,7 @@ def load_psql(bucket_name: str, datarelease: str, dbname: str, user: str, passwo
 @click.argument("mongo_collection", type=str)
 @click.argument("s3_bucket", type=str)
 @click.option("--n-cores", "-n", default=1)
-@click.option("--batch-size", "-b", default=100000)
+@click.option("--batch-size", "-b", default=10000)
 def load_mongo(mongo_uri: str, mongo_database: str, mongo_collection: str, s3_bucket: str, n_cores: int, batch_size: int):
     logger = logging.getLogger("load_mongo")
     logger.setLevel("INFO")
@@ -167,8 +167,9 @@ def load_mongo(mongo_uri: str, mongo_database: str, mongo_collection: str, s3_bu
     logger.addHandler(file)
     logger.info("Init now")
 
-    init_mongo(mongo_uri, mongo_database, mongo_collection)
+    drop_mongo(mongo_uri, mongo_database, mongo_collection)
     insert_data(s3_bucket, mongo_uri, mongo_database, mongo_collection, batch_size=batch_size, n_cores=n_cores)
+    init_mongo(mongo_uri, mongo_database, mongo_collection)
 
 
 def cmd():

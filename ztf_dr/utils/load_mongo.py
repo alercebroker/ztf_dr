@@ -48,7 +48,7 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
     del df["objdec"]
 
     df.rename(columns={"objectid": "_id"}, inplace=True)
-
+    df["reference"] = input_file
     for col in ["mag", "magerr", "hmjd"]:
         df[col] = df[col].map(lambda x: x.tobytes())
 

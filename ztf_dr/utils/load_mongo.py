@@ -62,7 +62,6 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
         for batch in indexes_batches:
             inserted = insert_batch(df, batch, collection)
             total_inserted += inserted
-            break
     logger.info(f"[PID {os.getpid()}] Inserted {total_inserted: >7} from {filename}")
     return total_inserted
 
@@ -91,7 +90,6 @@ def insert_data(s3_url_bucket: str,
     if n_cores == 1:
         for f in files:
             s3_parquet_to_mongo(bucket_name, f, mongo_config, batch_size=batch_size)
-            break
     elif n_cores > 1:
         args = [(bucket_name, f, mongo_config, batch_size) for f in files]
         with Pool(n_cores) as p:

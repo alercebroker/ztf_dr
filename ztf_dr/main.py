@@ -4,8 +4,6 @@ import pandas as pd
 import re
 import os
 
-from ztf_dr.collectors.downloader import DRDownloader
-from ztf_dr.extractors import DataReleaseExtractor
 from ztf_dr.utils.post_processing import get_objects_table, get_objects_table_with_reference
 from ztf_dr.utils.preprocess import Preprocessor
 from ztf_dr.utils.load_psql import load_csv_to_psql
@@ -30,6 +28,7 @@ def cli():
 @click.option("--ncores", "-n", default=2, help="Number of cores")
 @click.option("--output", "-o", type=str, default="/tmp")
 def download_data_release(data_release_url, checksum_path, bucket_path, ncores, output):
+    from ztf_dr.collectors.downloader import DRDownloader
     dr = DRDownloader(data_release_url,
                       checksum_path,
                       bucket=bucket_path,
@@ -67,6 +66,7 @@ def get_objects_with_reference(bucket_name, data_release):
 @click.argument("input_file", type=str)
 @click.argument("output_file", type=str)
 def get_features(input_file, output_file):
+    from ztf_dr.extractors import DataReleaseExtractor
     extractor = DataReleaseExtractor()
     zone = pd.read_parquet(input_file)
     features = extractor.compute_features(zone)
@@ -97,6 +97,7 @@ def do_preprocess(bucket_name: str, bucket_prefix: str, bucket_output: str, n_co
 @click.option("--path-monitor", "-mp", type=str, default="/home/apps/astro/alercebroker/resources/dr")
 def compute_features(bucket_input: str, bucket_output: str, partition: int, total_cores: int, preprocess: bool,
                      use_monitor: bool, path_monitor: str):
+    from ztf_dr.extractors import DataReleaseExtractor
     if use_monitor:
         monitor(path_monitor, f"compute_features_{partition}", log=True, plot=False)
     logging.info("Initializing features computer")

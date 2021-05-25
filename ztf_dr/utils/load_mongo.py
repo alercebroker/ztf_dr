@@ -24,9 +24,10 @@ def insert_batch(data: pd.DataFrame, indexes: List or np.ndarray, mongo_collecti
     return total_records
 
 
-def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, batch_size: int = 10000):
+def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, batch_size: int = 10000,
+                        limit_epochs: int = 20):
     input_file = os.path.join("s3://", bucket_name, filename)
-    preprocessor = Preprocessor(limit_epochs=1)
+    preprocessor = Preprocessor(limit_epochs=limit_epochs)
     df = pd.read_parquet(input_file)
     df = preprocessor.run(df)
     logger = logging.getLogger("load_mongo")
@@ -43,9 +44,6 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
             "coordinates": [x["objra"] - 180, x["objdec"]]
         }
     }, axis=1, result_type='expand')
-
-    del df["objra"]
-    del df["objdec"]
 
     df.rename(columns={"objectid": "_id"}, inplace=True)
     df["reference"] = input_file

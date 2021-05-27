@@ -24,11 +24,16 @@ def insert_batch(data: pd.DataFrame, indexes: List or np.ndarray, mongo_collecti
     return total_records
 
 
-def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, batch_size: int = 10000,
-                        limit_epochs: int = 20):
+def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, batch_size: int = 10000):
     input_file = os.path.join("s3://", bucket_name, filename)
+    limit_epochs = {
+        1: 5,
+        2: 5,
+        3: 1
+    }
     preprocessor = Preprocessor(limit_epochs=limit_epochs)
     df = pd.read_parquet(input_file)
+    before_preprocess = df.shape[0]
     df = preprocessor.run(df)
     logger = logging.getLogger("load_mongo")
     if df.shape[0] == 0:
@@ -46,7 +51,6 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
     }, axis=1, result_type='expand')
 
     df.rename(columns={"objectid": "_id"}, inplace=True)
-    df["reference"] = input_file
     for col in ["mag", "magerr", "hmjd"]:
         df[col] = df[col].map(lambda x: x.tobytes())
 
@@ -60,7 +64,7 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
         for batch in indexes_batches:
             inserted = insert_batch(df, batch, collection)
             total_inserted += inserted
-    logger.info(f"[PID {os.getpid()}] Inserted {total_inserted: >7} from {filename}")
+    logger.info(f"[PID {os.getpid()}] Inserted {total_inserted: >7}| Before preprocess {before_preprocess: > 7} from {filename}")
     return total_inserted
 
 

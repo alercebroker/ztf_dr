@@ -11,38 +11,54 @@ from ztf_dr.utils import existing_in_bucket
 
 class Preprocessor:
     def __init__(self,
-                 limit_epochs: int = 20,
+                 limit_epochs: dict or int = 20,
                  mag_error_tolerance: float = 1.0,
                  catflags_filter: int = 0):
         self.limit_epochs = limit_epochs
         self.mag_error_tolerance = mag_error_tolerance
         self.catflags_filter = catflags_filter
 
-    def preprocess(self, dataframe: pd.Series) -> pd.Series:
-        if dataframe["nepochs"] < self.limit_epochs:
-            dataframe["flag"] = False
-            return dataframe
+    def _create_nepochs_query(self):
+        query_string = lambda f, n: f"(filterid == {f} and nepochs >= {n})"
+        query = [query_string(k, v) for k, v in self.limit_epochs.items()]
+        query = ' or '.join(query)
+        return query
 
-        filter_error = dataframe["magerr"] < self.mag_error_tolerance
-        filter_catflags = dataframe["catflags"] == self.catflags_filter
+    def discard_by_nepochs(self, dataframe: pd.DataFrame):
+        if isinstance(self.limit_epochs, int):
+            mask = dataframe["nepochs"] >= self.limit_epochs
+            return dataframe[mask]
+        elif isinstance(self.limit_epochs, dict):
+            return dataframe.query(self._create_nepochs_query())
+        else:
+            raise Exception(f"Fatal error, {self.limit_epochs} must be an integer that indicates min. nepochs or dict "
+                            f"that indicates filterid (key) and nepochs (value)")
 
+    def preprocess(self, series: pd.Series) -> pd.Series:
+        filter_error = series["magerr"] <= self.mag_error_tolerance
+        filter_catflags = series["catflags"] == self.catflags_filter
         filters = np.logical_and(filter_error, filter_catflags)
         n_epochs = filters.sum()
-
-        if n_epochs < self.limit_epochs:
-            dataframe["flag"] = False
-            return dataframe
-
-        dataframe["flag"] = True
-        dataframe["catflags"] = dataframe["catflags"][filters]
-        dataframe["clrcoeff"] = dataframe["clrcoeff"][filters]
-        dataframe["hmjd"] = dataframe["hmjd"][filters]
-        dataframe["mag"] = dataframe["mag"][filters]
-        dataframe["magerr"] = dataframe["magerr"][filters]
-        dataframe["nepochs"] = n_epochs
-        return dataframe
+        if not isinstance(self.limit_epochs, dict) and not (isinstance(self.limit_epochs, int)):
+            raise Exception(f"Fatal error, {self.limit_epochs} must be an integer that indicates min. nepochs or dict "
+                            f"that indicates filterid (key) and nepochs (value)")
+        elif isinstance(self.limit_epochs, int) and n_epochs < self.limit_epochs:
+            series["flag"] = False
+            return series
+        elif isinstance(self.limit_epochs, dict) and n_epochs < self.limit_epochs[series["filterid"]]:
+            series["flag"] = False
+            return series
+        series["flag"] = True
+        series["catflags"] = series["catflags"][filters]
+        series["clrcoeff"] = series["clrcoeff"][filters]
+        series["hmjd"] = series["hmjd"][filters]
+        series["mag"] = series["mag"][filters]
+        series["magerr"] = series["magerr"][filters]
+        series["nepochs"] = n_epochs
+        return series
 
     def run(self, dataframe: pd.DataFrame):
+        dataframe = self.discard_by_nepochs(dataframe)
         dataframe = dataframe.apply(self.preprocess, axis=1)
         if len(dataframe) == 0:
             return None
@@ -73,9 +89,7 @@ class Preprocessor:
         })
 
         existing_files = existing_in_bucket(output_bucket)
-        print(data.shape)
         data = data[~data["output_file"].isin(existing_files)]
-        print(data.shape)
         if n_cores == 1:
             data.apply(lambda x: self.apply(x["input_file"], x["output_file"]), axis=1)
 

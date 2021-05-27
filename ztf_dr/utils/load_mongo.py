@@ -21,6 +21,8 @@ def insert_batch(data: pd.DataFrame, indexes: List or np.ndarray, mongo_collecti
     records = list(batch.T.to_dict().values())
     total_records = len(records)
     mongo_collection.insert_many(records)
+    del records
+    del batch
     return total_records
 
 
@@ -65,6 +67,8 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
             inserted = insert_batch(df, batch, collection)
             total_inserted += inserted
     logger.info(f"[PID {os.getpid()}] Inserted {total_inserted: >7}| Before preprocess {before_preprocess: > 7} from {filename}")
+    del df
+    del indexes_batches
     return total_inserted
 
 
@@ -94,6 +98,7 @@ def insert_data(s3_url_bucket: str,
             s3_parquet_to_mongo(bucket_name, f, mongo_config, batch_size=batch_size)
     elif n_cores > 1:
         args = [(bucket_name, f, mongo_config, batch_size) for f in files]
+        del files
         with Pool(n_cores) as p:
             p.starmap(s3_parquet_to_mongo, args)
 

@@ -52,7 +52,7 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
     try:
         df = preprocessor.run(df)
         logger = logging.getLogger("load_mongo")
-        if df.shape[0] == 0:
+        if df is None or df.shape[0] == 0:
             logger.info(f"[PID {os.getpid()}] Inserted {0: >7} from {filename}")
             return 0
 

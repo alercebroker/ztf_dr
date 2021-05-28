@@ -51,13 +51,13 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
     df = dd.read_parquet(input_file, engine="pyarrow")
     try:
         df = preprocessor.run(df)
+        logger = logging.getLogger("load_mongo")
+        if df.shape[0] == 0:
+            logger.info(f"[PID {os.getpid()}] Inserted {0: >7} from {filename}")
+            return 0
+
     except Exception as e:
         raise Exception(f"{filename} with problems: {e}")
-
-    logger = logging.getLogger("load_mongo")
-    if df.shape[0] == 0:
-        logger.info(f"[PID {os.getpid()}] Inserted {0: >7} from {filename}")
-        return 0
 
     del df['catflags']
     del df['clrcoeff']

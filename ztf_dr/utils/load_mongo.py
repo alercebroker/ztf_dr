@@ -21,7 +21,7 @@ def _get_already_preprocess() -> Set[str]:
     df = pd.concat(files)
     df.columns = ["file", "inserted"]
     del files
-    val = set(df["files"].values)
+    val = set(df["file"].values)
     return val
 
 

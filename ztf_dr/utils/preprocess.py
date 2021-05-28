@@ -1,4 +1,5 @@
 import boto3
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import re
@@ -59,9 +60,17 @@ class Preprocessor:
 
     def run(self, dataframe: pd.DataFrame):
         dataframe = self.discard_by_nepochs(dataframe)
-        dataframe = dataframe.apply(self.preprocess, axis=1)
+        if isinstance(dataframe, dd.DataFrame):
+            dataframe = dataframe.compute()
+
         if len(dataframe) == 0:
             return None
+
+        dataframe = dataframe.apply(self.preprocess, axis=1)
+
+        if len(dataframe) == 0:
+            return None
+
         dataframe = dataframe[dataframe["flag"]]
         del dataframe["flag"]
         return dataframe

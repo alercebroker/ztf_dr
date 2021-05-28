@@ -1,5 +1,6 @@
 import boto3
 import logging
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import pymongo
@@ -35,8 +36,7 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
         3: 1
     }
     preprocessor = Preprocessor(limit_epochs=limit_epochs)
-    df = pd.read_parquet(input_file)
-    before_preprocess = df.shape[0]
+    df = dd.read_parquet(input_file, engine="pyarrow")
     df = preprocessor.run(df)
     logger = logging.getLogger("load_mongo")
     if df.shape[0] == 0:
@@ -67,10 +67,12 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
         for batch in indexes_batches:
             inserted = insert_batch(df, batch, collection)
             total_inserted += inserted
-    logger.info(f"[PID {os.getpid()}] Inserted {total_inserted: >7}| Before preprocess {before_preprocess: > 7} from {filename}")
+    logger.info(f"[PID {os.getpid()}] Inserted {total_inserted: >7}from {filename}")
     del df
     del indexes_batches
     gc.collect()
+    with open(f"/tmp/already_{os.getpid()}.csv", "a") as f:
+        f.write(f"{input_file}, {total_inserted}/n")
     return total_inserted
 
 

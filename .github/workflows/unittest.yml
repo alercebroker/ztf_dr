@@ -26,7 +26,7 @@ jobs:
       run: |
         sudo apt-get -y install libsnappy-dev
         python -m pip install --upgrade pip
-        pip install pytest coverage moto
+        pip install pytest coverage moto mongomock
         pip install numpy Cython
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install -e .

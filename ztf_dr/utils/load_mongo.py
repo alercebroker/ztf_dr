@@ -13,9 +13,9 @@ from six.moves.urllib import parse
 from ztf_dr.utils.preprocess import Preprocessor
 
 
-def _get_already_preprocess() -> Set[str]:
-    files = [f for f in os.listdir('/tmp/') if f.startswith("already")]
-    files = [pd.read_csv(os.path.join("/tmp", f), header=None) for f in files]
+def _get_already_preprocess(path="/tmp/") -> Set[str]:
+    files = [f for f in os.listdir(path) if f.startswith("already")]
+    files = [pd.read_csv(os.path.join(path, f), header=None) for f in files]
     if len(files) == 0:
         return {}
     df = pd.concat(files)
@@ -49,7 +49,11 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
     }
     preprocessor = Preprocessor(limit_epochs=limit_epochs)
     df = dd.read_parquet(input_file, engine="pyarrow")
-    df = preprocessor.run(df)
+    try:
+        df = preprocessor.run(df)
+    except Exception as e:
+        raise Exception(f"{filename} with problems: {e}")
+
     logger = logging.getLogger("load_mongo")
     if df.shape[0] == 0:
         logger.info(f"[PID {os.getpid()}] Inserted {0: >7} from {filename}")

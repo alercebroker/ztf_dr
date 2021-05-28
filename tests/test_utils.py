@@ -9,6 +9,7 @@ from ztf_dr.utils.post_processing import get_objects_table, get_objects
 from ztf_dr.utils.preprocess import Preprocessor
 from ztf_dr import utils
 
+
 @mock_s3
 class UtilsTest(TestCase):
     def setUp(self) -> None:

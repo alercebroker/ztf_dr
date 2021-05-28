@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pymongo
 import os
+import gc
 
 from typing import List
 from multiprocessing import Pool
@@ -69,6 +70,7 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
     logger.info(f"[PID {os.getpid()}] Inserted {total_inserted: >7}| Before preprocess {before_preprocess: > 7} from {filename}")
     del df
     del indexes_batches
+    gc.collect()
     return total_inserted
 
 

@@ -15,7 +15,7 @@ from ztf_dr.utils.preprocess import Preprocessor
 
 def _get_already_preprocess() -> Set[str]:
     files = [f for f in os.listdir('/tmp/') if f.startswith("already")]
-    files = [pd.read_csv(os.path.join("/tml", f), header=None) for f in files]
+    files = [pd.read_csv(os.path.join("/tmp", f), header=None) for f in files]
     if len(files) == 0:
         return {}
     df = pd.concat(files)

@@ -7,10 +7,19 @@ import pymongo
 import os
 import gc
 
-from typing import List
+from typing import List, Set
 from multiprocessing import Pool
 from six.moves.urllib import parse
 from ztf_dr.utils.preprocess import Preprocessor
+
+
+def _get_already_preprocess() -> Set[str]:
+    files = [f for f in os.listdir('/tmp/') if f.startswith("already")]
+    files = [pd.read_csv(os.path.join("/tml", f), columns=["file", "inserted"]) for f in files]
+    df = pd.concat(files)
+    del files
+    val = set(df["files"].values)
+    return val
 
 
 def get_batches(data: pd.DataFrame, batch_size=100000):
@@ -67,12 +76,12 @@ def s3_parquet_to_mongo(bucket_name: str, filename: str, mongo_config: dict, bat
         for batch in indexes_batches:
             inserted = insert_batch(df, batch, collection)
             total_inserted += inserted
-    logger.info(f"[PID {os.getpid()}] Inserted {total_inserted: >7}from {filename}")
+    logger.info(f"[PID {os.getpid()}] Inserted {total_inserted: >7} from {filename}")
     del df
     del indexes_batches
     gc.collect()
     with open(f"/tmp/already_{os.getpid()}.csv", "a") as f:
-        f.write(f"{input_file}, {total_inserted}/n")
+        f.write(f"{filename}, {total_inserted}\n")
     return total_inserted
 
 
@@ -96,6 +105,11 @@ def insert_data(s3_url_bucket: str,
     s3 = boto3.resource('s3')
     bucket = s3.Bucket(bucket_name)
     files = sorted([x.key for x in bucket.objects.filter(Prefix=key_prefix) if x.key.endswith(".parquet")])
+    files = set(files)
+
+    processed = _get_already_preprocess()
+
+    files = files.difference(processed)
 
     if n_cores == 1:
         for f in files:

@@ -106,11 +106,12 @@ def insert_data(s3_url_bucket: str,
     bucket = s3.Bucket(bucket_name)
     files = sorted([x.key for x in bucket.objects.filter(Prefix=key_prefix) if x.key.endswith(".parquet")])
     files = set(files)
-
+    total = len(files)
     processed = _get_already_preprocess()
 
     files = files.difference(processed)
-
+    logger = logging.getLogger("load_mongo")
+    logger.info(f"Total={total:>7} | Processed={len(processed):>7} | To process={len(files):>7}")
     if n_cores == 1:
         for f in files:
             s3_parquet_to_mongo(bucket_name, f, mongo_config, batch_size=batch_size)

@@ -22,6 +22,15 @@ pip install .
 ## Usage
 
 ### Downloading a Data Release of ZTF (>= DR5)
+You need an instance in S3 for run this script. The resources that worked without a problem are a `c5a.large` instance with 150 GB of disk. As you increase the number of processes to run, you will need more disks. 
+
+Each process distributes the fields of the data release, each process performs:
+1. Verify that the field file is in S3, if it is not there, the file is downloaded, if it is, continue with the next one.
+2. Upload the file to S3.
+3. Delete the file from disk.
+4. Continue with the next file.
+
+To run the code, follow the instructions below: 
 
 1. Locate the data release that you need download. i.e: https://irsa.ipac.caltech.edu/data/ZTF/lc_dr5/
 2. Locate the checksum file. i.e: https://irsa.ipac.caltech.edu/data/ZTF/lc_dr5/checksums.md5
@@ -35,7 +44,7 @@ dr download-data-release https://irsa.ipac.caltech.edu/data/ZTF/lc_dr5/ \
 ```
 4. Wait calmly because there is a lot of data!
 
-### Remove light curve of DR
+### Remove light curve of DR (or get object's table)
 If you want to get the Data Release metadata without the light curves (to do xmatch or another operation), you can get it using the following command (you must have the data stored somewhere e.g S3):
 
 ```
@@ -65,6 +74,16 @@ zone = pd.read_parquet(input_file)
 features = extractor.compute_features(zone)
 features.to_parquet(output_file)
 ```
+
+If you have access to a slurm cluster, run this command in your terminal:
+
+```
+sbatch --array [0-499]%500 compute_features.slurm <s3-bucket-raw-data> <s3-bucket-output-data>
+```
+
+This code distributes 500 jobs in the whole cluster, therefore it distributes all the files of the data release in these jobs. This code is in charge of calculating the features for objects that meet the following conditions: 
+- points of the light curve with catflags = 0 and magerr <1
+- ndets> 20 in fid 1 and 2, ndets> 5 in fid 3 
 
 ## Maintenance
 

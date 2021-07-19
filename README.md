@@ -85,6 +85,53 @@ This code distributes 500 jobs in the whole cluster, therefore it distributes al
 - points of the light curve with catflags = 0 and magerr <1
 - ndets> 20 in fid 1 and 2, ndets> 5 in fid 3 
 
+### Integration with [ZTF DR API](https://github.com/alercebroker/ztf_dr_api)
+
+Each time you want to update the data in the API database (when ZTF launch a new data release), you must do the following procedure:
+
+1. Launch a machine and install mongodb, the disk should be of a size similar to the total of the data release (e.g DR5 weighs ~ 3.5 TB and the disk of the machine is 3.4 TB).
+2. In the same instance run:
+   
+```
+   dr load_mongo <host> <db-name> <collection-name> <input-s3-bucket> --n-cores <number-of-processes> --batch-size <objects-per-batch>
+ ```
+**NOTE:** If you want drop all elements in database use the flag `-d` in the command.
+
+The code filter objects and converts the light curve to binary and inserts a document of the structure into database: 
+
+```
+{
+    "_id" : NumberLong(1550215200000003),
+    "filterid" : 2,
+    "fieldid" : 1550,
+    "rcid" : 57,
+    "objra" : 35.6168823242188,
+    "objdec" : 19.0562019348145,
+    "nepochs" : 25,
+    "hmjd" : { "$binary" : "avJjR2D1Y0eF/GNHawNkR3AJZEdsCmRHWzdkR0k5ZEdHOmRHTT1kR0w/ZEdNQGRHTUNkR01EZEdWRWRHZFFkRzRYZEcwWWRHYHJlR2ByZUdpc2VHaXNlR3Z7ZUdffGVHX3xlRw==", "$type" : "00" },
+    "mag" : { "$binary" : "U/6EQc5ahUGrcYVBcG+FQfKUhUHSZYVBJliFQQBphUEcNIVB1AiFQRAqhUHOOoVBJA6FQUFahUEiMoVB9a2FQQ4UhUHWNoVBw0yFQQyYhUF2jIVBHCGFQWhchUHiQIVBWlyFQQ==", "$type" : "00" },
+    "magerr" : { "$binary" : "U65nPEjEazyCz2w8TbVsPMdybjybRGw8dKVrPMppbDzXB2o8UCJoPA6WaTwEVGo8Ql1oPN69azxi8Wk8LKFvPBWfaDzWJmo82SFrPAiYbjwwDW48ODFpPOTWazx0mWo8O9ZrPA==", "$type" : "00" },
+    "loc" : {
+        "type" : "Point",
+        "coordinates" : [ 
+            -144.383117675781, 
+            19.0562019348145
+        ]
+    }
+}
+```
+
+Finally, the script create a spatial-index of the value `loc` and other indexes like by `nepochs`, `filterid`, `fieldid`, among others.
+
+After that, in the AWS console:
+
+1. Go to `lambda`.
+2. Click on `ztd-dr-api`
+3. Go to `configuration` after that click on `Environment variables`.
+4. Change the oldest credentials to the newest credentials.
+
+**NOTE:** If you did some change in the [ztf_dr_api](https://github.com/alercebroker/ztf_dr_api), you must update the lambda function.
+
 ## Maintenance
 
 - In [data](https://github.com/alercebroker/ztf_dr_downloader/tree/master/data) folder we save some data of data releases (since DR5).

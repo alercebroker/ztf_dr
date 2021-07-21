@@ -143,19 +143,17 @@ def init_mongo(mongo_uri: str, mongo_database: str, mongo_collection: str):
     with pymongo.MongoClient(mongo_uri, serverSelectionTimeoutMS=10000) as _mongo_client:
         _db = _mongo_client[mongo_database]
         _collection = _db[mongo_collection]
-        resp = _collection.create_index([("nepochs", 1)])
-        logger.info(f"Index response: {resp}")
-        resp = _collection.create_index([("objectid", 1)])
-        logger.info(f"Index response: {resp}")
-        resp = _collection.create_index([("filterid", "hashed")])
-        logger.info(f"Index response: {resp}")
-        resp = _collection.create_index([("fieldid", 1)])
-        logger.info(f"Index response: {resp}")
-        resp = _collection.create_index([("rcid", 1)])
-        logger.info(f"Index response: {resp}")
+
         # http://strakul.blogspot.com/2019/07/data-science-mongodb-sky-searches-with.html
         resp = _collection.create_index([("loc", "2dsphere")])
         logger.info(f"Index response: {resp}")
+
+        resp = _collection.create_index([("nepochs", 1)])
+        logger.info(f"Index response: {resp}")
+        resp = _collection.create_index([("filterid", "hashed")])
+        logger.info(f"Index response: {resp}")
+        # resp = _collection.create_index([("fieldid", 1)])
+        # logger.info(f"Index response: {resp}")
 
 
 if __name__ == "__main__":

@@ -8,8 +8,8 @@ from ztf_dr.extractors.base import DR_base
 
 class DRSNPMExtractor(DR_base, SPMExtractorPhaseII):
     def __init__(self):
-        super(DR_base, self).__init__(bands=[1, 2])
-        super(SPMExtractorPhaseII, self).__init__(bands=[1, 2])
+        super(DR_base, self).__init__(bands=[1, 2, 3])
+        super(SPMExtractorPhaseII, self).__init__(bands=[1, 2, 3])
         self.sn_model = SNModelScipyPhaseII()
 
     def _compute(self,  light_curve, **kwargs) -> pd.Series:

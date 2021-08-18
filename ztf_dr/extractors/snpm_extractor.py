@@ -25,8 +25,5 @@ class DRSNPMExtractor(DR_base, SPMExtractorPhaseII):
         fit_error = self.sn_model.fit(times, targets, errors)
         model_parameters = self.sn_model.get_model_parameters()
         model_parameters.append(fit_error)
-
-        return pd.Series(
-            data=model_parameters,
-            index=self.get_features_keys()
-        )
+        response = pd.Series(data=model_parameters, index=self.get_features_keys_without_band())
+        return response

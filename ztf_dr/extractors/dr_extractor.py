@@ -10,15 +10,15 @@ from ztf_dr.extractors import (DRGalacticCoordinates, DRGPDRWExtractor, DRMHPSEx
 class DataReleaseExtractor(FeatureExtractor):
     def __init__(self):
         self.extractors = [
-            # DRGalacticCoordinates(),
-            # DRMHPSExtractor(),
+            DRGalacticCoordinates(),
+            DRMHPSExtractor(),
             DRSNPMExtractor(),
-            # DRTurboFatsExtractor(),
-            # DRGPDRWExtractor(),
-            # DRPeriodExtractor(),
-            # DRPowerRateExtractor(),
-            # DRFoldedKimExtractor(),
-            # DRHarmonicsExtractor(),
+            DRTurboFatsExtractor(),
+            DRGPDRWExtractor(),
+            DRPeriodExtractor(),
+            DRPowerRateExtractor(),
+            DRFoldedKimExtractor(),
+            DRHarmonicsExtractor(),
         ]
         self.basic_data = ["filterid", "objra", "objdec", "nepochs"]
 

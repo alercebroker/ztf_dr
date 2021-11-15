@@ -54,9 +54,10 @@ class FoldedKimTest(TestCase):
         self.assertTrue("First execute DRPeriodExtractor for get periods" in str(context.exception))
 
     def test_compute(self):
-        periods = self.period_extractor.compute_features(DR5_SAMPLE)
-        periods.index = DR5_SAMPLE.index
-        response = self.km_extractor._compute_features(DR5_SAMPLE, features=periods)
+        sample = DR5_SAMPLE.reset_index()
+        periods = self.period_extractor.compute_features(sample)
+        periods.index = sample.index
+        response = self.km_extractor._compute_features(sample, features=periods)
         self.assertIsInstance(response, pd.DataFrame)
         self.assertEqual(response.shape[0], 10)
         self.assertEqual(response.shape[1], 2)
@@ -81,10 +82,12 @@ class GPDRWTest(TestCase):
         self.gpdrw_extractor = DRGPDRWExtractor()
 
     def test_get_required_keys(self):
-        keys = ['hmjd', 'mag', 'fid', 'magerr']
+        keys = ['hmjd', 'mag', 'magerr']
         self.assertListEqual(self.gpdrw_extractor.get_required_keys(), keys)
 
     def test_compute(self):
+        print(DR5_SAMPLE)
+        print(DR5_SAMPLE.columns)
         response = self.gpdrw_extractor.compute_features(DR5_SAMPLE)
         self.assertIsInstance(response, pd.DataFrame)
         self.assertEqual(response.shape[0], 10)

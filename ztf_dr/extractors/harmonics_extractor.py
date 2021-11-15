@@ -2,17 +2,20 @@ import numpy as np
 import pandas as pd
 
 from lc_classifier.features.extractors import HarmonicsExtractor
-from typing import List
+from typing import List, Tuple
 from ztf_dr.extractors.base import DR_base
 
 
 class DRHarmonicsExtractor(DR_base, HarmonicsExtractor):
     def __init__(self):
-        super(DR_base, self).__init__()
-        super(DRHarmonicsExtractor, self).__init__()
+        super(DR_base, self).__init__(bands=[0])
+        super(DRHarmonicsExtractor, self).__init__(bands=[0])
 
     def get_required_keys(self) -> List[str]:
         return ["hmjd", "mag", "magerr"]
+
+    def get_features_keys(self) -> Tuple[str, ...]:
+        return self.get_features_keys_without_band()
 
     def _compute(self, light_curve: pd.DataFrame, **kwargs) -> pd.Series:
         objectid = light_curve.name
@@ -50,7 +53,7 @@ class DRHarmonicsExtractor(DR_base, HarmonicsExtractor):
             mse = np.mean((fitted_magnitude - magnitude) ** 2)
             out = pd.Series(
                 data=np.concatenate([coef_mag, coef_phi, np.array([mse])]),
-                index=self.get_features_keys())
+                index=self.get_features_keys_without_band())
             return out
 
         except Exception as e:

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from lc_classifier.features.extractors import GPDRWExtractor
-from typing import List
+from typing import List, Tuple
 from scipy.optimize import minimize
 from ztf_dr.extractors.base import DR_base
 
@@ -24,10 +24,13 @@ def neg_log_like(params, gp, time, mag, sq_error):
 class DRGPDRWExtractor(DR_base, GPDRWExtractor):
     def __init__(self):
         super(DR_base).__init__()
-        super(DRGPDRWExtractor, self).__init__()
+        super(DRGPDRWExtractor, self).__init__(bands=[0])
 
     def get_required_keys(self) -> List[str]:
-        return ['hmjd', 'mag', 'fid', 'magerr']
+        return ['hmjd', 'mag', 'magerr']
+
+    def get_features_keys(self) -> Tuple[str, ...]:
+        return self.get_features_keys_without_band()
 
     def _compute(self, light_curve: pd.DataFrame, **kwargs) -> pd.Series:
         time = light_curve["hmjd"]
@@ -54,5 +57,5 @@ class DRGPDRWExtractor(DR_base, GPDRWExtractor):
             1.0 / optimal_params[1]
         ]
 
-        out = pd.Series(data=out_data, index=self.get_features_keys())
+        out = pd.Series(data=out_data, index=self.get_features_keys_without_band())
         return out

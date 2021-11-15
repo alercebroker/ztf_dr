@@ -1,17 +1,26 @@
 import pandas as pd
+import numpy as np
 
 from lc_classifier.features import TurboFatsFeatureExtractor
-from typing import List
+from typing import List, Tuple
 from ztf_dr.extractors.base import DR_base
 
 
 class DRTurboFatsExtractor(DR_base, TurboFatsFeatureExtractor):
     def __init__(self):
-        super().__init__()
+        super().__init__(bands=[0])
         self.feature_space.data_column_names = ["mjd", "mag", "magerr"]
 
     def get_required_keys(self) -> List[str]:
         return ["hmjd", "mag", "magerr"]
+
+    def nan_series(self):
+        return pd.Series(
+            data=[np.nan]*len(self._feature_keys_for_new_feature_space()),
+            index=self._feature_keys_for_new_feature_space())
+
+    def get_features_keys(self) -> Tuple[str, ...]:
+        return self.get_features_keys_without_band()
 
     def _compute(self, light_curve: pd.Series, **kwargs) -> pd.Series:
         mag = light_curve["mag"]

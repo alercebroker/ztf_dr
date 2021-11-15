@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from typing import Tuple
 from lc_classifier.features.extractors.sn_parametric_model_computer import SPMExtractorPhaseII, SNModelScipyPhaseII
 from lc_classifier.features.extractors.sn_parametric_model_computer import mag_to_flux
 from ztf_dr.extractors.base import DR_base
@@ -8,9 +9,12 @@ from ztf_dr.extractors.base import DR_base
 
 class DRSNPMExtractor(DR_base, SPMExtractorPhaseII):
     def __init__(self):
-        super(DR_base, self).__init__(bands=[1, 2, 3])
-        super(SPMExtractorPhaseII, self).__init__(bands=[1, 2, 3])
+        super(DR_base, self).__init__(bands=[0])
+        super(SPMExtractorPhaseII, self).__init__(bands=[0])
         self.sn_model = SNModelScipyPhaseII()
+
+    def get_features_keys(self) -> Tuple[str, ...]:
+        return self.get_features_keys_without_band()
 
     def _compute(self,  light_curve, **kwargs) -> pd.Series:
         times = light_curve["hmjd"]

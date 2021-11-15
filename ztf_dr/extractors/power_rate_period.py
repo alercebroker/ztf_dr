@@ -8,8 +8,8 @@ from ztf_dr.extractors.base import DR_base
 
 class DRPowerRateExtractor(DR_base, PowerRateExtractor):
     def __init__(self):
-        super(DR_base, self).__init__()
-        super(DRPowerRateExtractor, self).__init__()
+        super(DRPowerRateExtractor, self).__init__(bands=[0])
+        super(DR_base, self).__init__(bands=[0])
 
     def get_required_keys(self) -> List[str]:
         return ["hmjd", "mag", "magerr", "filterid"]

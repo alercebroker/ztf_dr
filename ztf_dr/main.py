@@ -4,7 +4,7 @@ import pandas as pd
 import re
 import os
 
-from ztf_dr.utils.post_processing import get_objects_table, get_objects_table_with_reference
+from ztf_dr.utils.post_processing import parse_parquets
 from ztf_dr.utils.preprocess import Preprocessor
 from ztf_dr.utils.load_psql import load_csv_to_psql
 from ztf_dr.utils.load_mongo import init_mongo, insert_data, drop_mongo
@@ -38,27 +38,10 @@ def download_data_release(data_release_url, checksum_path, bucket_path, ncores, 
 
 
 @click.command()
-@click.argument("bucket_name", type=str)
-@click.argument("data_release", type=str)
-@click.option("--prefix-field", "-pf", default=None)
-def get_objects(bucket_name, data_release, prefix_field):
-    if prefix_field is None:
-        prefix_field = f"{data_release}/field"
-    get_objects_table(bucket_name,
-                      data_release,
-                      prefix_field,
-                      f"{data_release}/objects",
-                      f"s3://{bucket_name}/{data_release}/objects")
-    return
-
-
-@click.command()
-@click.argument("bucket_name", type=str)
-@click.argument("data_release", type=str)
-def get_objects_with_reference(bucket_name, data_release):
-    get_objects_table_with_reference(bucket_name,
-                                     data_release,
-                                     f"{data_release}/objects_reference")
+@click.argument("s3_uri", type=str)
+@click.argument("output_path", type=str)
+def get_objects_with_reference(s3_uri, output_path):
+    output_path(s3_uri, output_path)
     return
 
 

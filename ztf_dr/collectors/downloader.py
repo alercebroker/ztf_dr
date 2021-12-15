@@ -6,7 +6,6 @@ import os
 import wget
 import logging
 
-from typing import Tuple
 from ztf_dr.utils.s3 import s3_uri_bucket
 from ztf_dr.utils.jobs import run_jobs
 
@@ -102,7 +101,7 @@ class DRDownloader:
                                 squeeze=True)
 
         checksums["field"] = checksums["file"].map(lambda x: find_field(x))
-        checksums["file"] = checksums['file'].map(lambda x: self.data_release_url + x[2:])
+        checksums["file"] = checksums['file'].map(lambda x: os.path.join(self.data_release_url, x[2:]))
         self.checksums = checksums
         return checksums
 
@@ -150,23 +149,20 @@ class DRDownloader:
         """
         if not self.bucket_name:
             return 1
-        bucket_dir = os.path.join("s3://", self.bucket_name, field_name)
+        bucket_dir = os.path.join("s3://", self.bucket_name, self.path, field_name)
         command = f"aws s3 sync {local_path} {bucket_dir} > /dev/null"
         return os.system(command)
 
-    def process(self, data: Tuple) -> None:
+    def process(self, field: str, rows: pd.DataFrame) -> None:
         """
         Basic method to process one field of data release, download all parquets and finish uploading all files to S3.
         After that remove all temp files.
 
-        :param data: Data of one field
+        :param field: Data of one field
+        :param rows:
         :return:
         """
-        field = data[0]
-        rows = data[1]
-
         field_path = os.path.join(self.output_folder, field)
-
         if not os.path.exists(field_path):
             os.makedirs(field_path)
 
@@ -191,5 +187,6 @@ class DRDownloader:
         :return:
         """
         fields = self.checksums.groupby(["field"])
+        fields = [f for f in fields]
         run_jobs(fields, self.process, num_processes=num_processes)
         return

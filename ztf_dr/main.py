@@ -4,16 +4,20 @@ import pandas as pd
 import re
 import os
 
-from ztf_dr.utils.post_processing import parse_parquets
+from ztf_dr.utils.parse_parquet import parse_parquets
 from ztf_dr.utils.preprocess import Preprocessor
-from ztf_dr.utils.load_psql import load_csv_to_psql
 from ztf_dr.utils.load_mongo import init_mongo, insert_data, drop_mongo
 from ztf_dr.utils import existing_in_bucket, split_list, monitor
+from ztf_dr.utils.s3 import s3_uri_bucket, get_s3_path_to_files
+from ztf_dr.db.mongo import create_indexes, insert_dataframe
+from ztf_dr.utils.jobs import run_jobs
 
 
-logging.basicConfig(level="INFO",
-                    format='%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+def _insert_features(file_path, mongo_config, batch_size=10000):
+    features = pd.read_parquet(file_path)
+    features["_id"] = features.index
+    inserted = insert_dataframe(features, mongo_config, batch_size=batch_size)
+    return inserted
 
 
 @click.group()
@@ -24,37 +28,56 @@ def cli():
 @click.command()
 @click.argument("data_release_url", type=str)
 @click.argument("checksum_path", type=str)
-@click.argument("bucket_path", type=str)
-@click.option("--ncores", "-n", default=2, help="Number of cores")
+@click.argument("s3_uri", type=str)
+@click.option("--n-process", "-n", default=2, help="Number of cores")
 @click.option("--output", "-o", type=str, default="/tmp")
-def download_data_release(data_release_url, checksum_path, bucket_path, ncores, output):
+def download_data_release(data_release_url, checksum_path, s3_uri, n_process, output):
     from ztf_dr.collectors.downloader import DRDownloader
     dr = DRDownloader(data_release_url,
                       checksum_path,
-                      bucket=bucket_path,
+                      s3_uri=s3_uri,
                       output_folder=output)
-    dr.run(ncores)
+    dr.run(n_process)
     return
 
 
 @click.command()
 @click.argument("s3_uri", type=str)
 @click.argument("output_path", type=str)
-def get_objects_with_reference(s3_uri, output_path):
-    output_path(s3_uri, output_path)
+def parse_data_release_parquets(s3_uri, output_path):
+    parse_parquets(s3_uri, output_path)
     return
 
 
 @click.command()
-@click.argument("input_file", type=str)
-@click.argument("output_file", type=str)
-def get_features(input_file, output_file):
-    from ztf_dr.extractors import DataReleaseExtractor
-    extractor = DataReleaseExtractor()
-    zone = pd.read_parquet(input_file)
-    features = extractor.compute_features(zone)
-    features.to_parquet(output_file)
-    return
+@click.argument("s3_uri", type=str)
+@click.argument("mongo_uri", type=str)
+@click.argument("mongo_database", type=str)
+@click.argument("mongo_collection", type=str)
+@click.option("--n-process", "-n", default=2)
+@click.option("--batch-size", "-b", default=10000)
+def insert_features(s3_uri: str,
+                    mongo_uri: str,
+                    mongo_database: str,
+                    mongo_collection: str,
+                    n_process: int,
+                    batch_size: int):
+    bucket_name, path = s3_uri_bucket(s3_uri)
+    to_process = get_s3_path_to_files(bucket_name, path)
+    mongo_config = {
+        "mongo_uri": mongo_uri,
+        "mongo_database": mongo_database,
+        "mongo_collection": mongo_collection
+    }
+
+    if n_process == 1:
+        for file in to_process:
+            file_path = os.path.join("s3://", bucket_name, file)
+            _insert_features(file_path, mongo_config, batch_size=batch_size)
+
+    else:
+        args = [(os.path.join("s3://", bucket_name, f), mongo_config, batch_size) for f in to_process]
+        run_jobs(args, _insert_features, num_processes=n_process)
 
 
 @click.command()
@@ -125,17 +148,6 @@ def compute_features(bucket_input: str, bucket_output: str, partition: int, tota
 
 
 @click.command()
-@click.argument("bucket_name", type=str)
-@click.argument("datarelease", type=str)
-@click.option("--dbname", "-t", default="datarelease")
-@click.option("--user", default="postgres")
-@click.option("--password", default="root")
-@click.option("--host", default="127.0.0.1")
-def load_psql(bucket_name: str, datarelease: str, dbname: str, user: str, password: str, host: str):
-    load_csv_to_psql(bucket_name, datarelease, dbname, user, password, host)
-
-
-@click.command()
 @click.argument("mongo_uri", type=str)
 @click.argument("mongo_database", type=str)
 @click.argument("mongo_collection", type=str)
@@ -160,15 +172,16 @@ def load_mongo(mongo_uri: str, mongo_database: str, mongo_collection: str, s3_bu
 
 def cmd():
     cli.add_command(download_data_release)
-    cli.add_command(get_objects)
-    cli.add_command(get_objects_with_reference)
-    cli.add_command(get_features)
+    cli.add_command(parse_data_release_parquets)
+    cli.add_command(insert_features)
     cli.add_command(do_preprocess)
     cli.add_command(compute_features)
-    cli.add_command(load_psql)
     cli.add_command(load_mongo)
     cli()
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level="INFO",
+                        format='%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S')
     cmd()

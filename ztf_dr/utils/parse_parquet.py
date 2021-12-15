@@ -1,15 +1,14 @@
 import os
 import boto3
 import logging
+
 import pyarrow as pa
 import dask.dataframe as dd
 
+from typing import List, Tuple
 from urllib.parse import urlparse
 from dask.diagnostics import ProgressBar
 
-logging.basicConfig(level="INFO",
-                    format='%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
 
 LC_FIELDS = {
     'objectid': pa.int64(),
@@ -37,6 +36,24 @@ def parse_field(field_path: str, output_path: str) -> None:
     return
 
 
+def get_s3_path_to_files(bucket_name: str, path: str) -> List:
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(bucket_name)
+    input_files = [x.key for x in bucket.objects.filter(Prefix=path)]
+    logging.info(f"To process: {len(input_files)} files")
+    return input_files
+
+
+def s3_uri_bucket(s3_uri: str) -> Tuple:
+    parsed_url = urlparse(s3_uri)
+    protocol = parsed_url.scheme
+    if protocol != "s3":
+        raise Exception(f"The uri {s3_uri} doesn't comply with the s3 protocol (e.g. s3://bucket/path_to_folder)")
+    bucket_name = parsed_url.hostname
+    path = parsed_url.path[1:]
+    return bucket_name, path
+
+
 def parse_parquets(s3_uri_input: str, output_path: str) -> None:
     parsed_url = urlparse(s3_uri_input)
     bucket_name = parsed_url.hostname
@@ -58,8 +75,3 @@ def parse_parquets(s3_uri_input: str, output_path: str) -> None:
             output_path = os.path.join("s3://", bucket_name, output_path, field)
             parse_field(field_path, output_path)
     return
-
-
-if __name__ == "__main__":
-    parse_parquets("s3://ztf-data-releases/dr5/raw/field020", "dr5/parsed")
-    print("end")

@@ -1,14 +1,10 @@
 import os
-import boto3
 import logging
-
+import pandas as pd
 import pyarrow as pa
-import dask.dataframe as dd
 
-from typing import List, Tuple
-from urllib.parse import urlparse
-from dask.diagnostics import ProgressBar
-
+from ztf_dr.utils.jobs import run_jobs
+from ztf_dr.utils.s3 import s3_uri_bucket, s3_filename_difference, get_s3_path_to_files
 
 LC_FIELDS = {
     'objectid': pa.int64(),
@@ -28,50 +24,27 @@ LC_FIELDS = {
 LC_SCHEMA = pa.schema(LC_FIELDS)
 
 
-def parse_field(field_path: str, output_path: str) -> None:
-    field_path = os.path.join(field_path, "*.parquet")
-    df = dd.read_parquet(field_path, engine="pyarrow")
-    with ProgressBar():
-        df.to_parquet(output_path, schema=LC_SCHEMA)
-    return
+def parse_field(field_path: str, output_path: str) -> int:
+    df = pd.read_parquet(field_path)
+    df.to_parquet(output_path, schema=LC_SCHEMA)
+    return 1
 
 
-def get_s3_path_to_files(bucket_name: str, path: str) -> List:
-    s3 = boto3.resource('s3')
-    bucket = s3.Bucket(bucket_name)
-    input_files = [x.key for x in bucket.objects.filter(Prefix=path)]
-    logging.info(f"To process: {len(input_files)} files")
-    return input_files
+def parse_parquets(s3_uri_input: str, s3_uri_output: str, n_processes: int = 2) -> None:
+    bucket_name_input, path_input = s3_uri_bucket(s3_uri_input)
+    bucket_name_output, path_output = s3_uri_bucket(s3_uri_output)
 
-
-def s3_uri_bucket(s3_uri: str) -> Tuple:
-    parsed_url = urlparse(s3_uri)
-    protocol = parsed_url.scheme
-    if protocol != "s3":
-        raise Exception(f"The uri {s3_uri} doesn't comply with the s3 protocol (e.g. s3://bucket/path_to_folder)")
-    bucket_name = parsed_url.hostname
-    path = parsed_url.path[1:]
-    return bucket_name, path
-
-
-def parse_parquets(s3_uri_input: str, output_path: str) -> None:
-    parsed_url = urlparse(s3_uri_input)
-    bucket_name = parsed_url.hostname
-    protocol = parsed_url.scheme
-    path = parsed_url.path[1:]
-    if protocol != "s3":
-        raise Exception(f"The uri {s3_uri_input} doesn't comply with the s3 protocol (e.g. s3://bucket/path_to_folder)")
-    s3 = boto3.resource('s3')
-    bucket = s3.Bucket(bucket_name)
-
-    fields = set([x.key.split("/")[-2] for x in bucket.objects.filter(Prefix=path)])
-    parsed_fields = set([x.key.split("/")[-2] for x in bucket.objects.filter(Prefix=output_path)])
+    fields = get_s3_path_to_files(bucket_name_input, path_input)
+    parsed_fields = get_s3_path_to_files(bucket_name_output, path_output)
 
     logging.info(f"{len(parsed_fields)}/{len(fields)} fields processed")
-    for field in fields:
-        if field not in parsed_fields:
-            path = "/".join(path.split("/")[:-1])
-            field_path = os.path.join("s3://", bucket_name, path, field)
-            output_path = os.path.join("s3://", bucket_name, output_path, field)
-            parse_field(field_path, output_path)
+
+    to_process = s3_filename_difference(fields, parsed_fields)
+    n_to_process = len(to_process)
+    if n_to_process:
+        logging.info(f"Process {n_to_process} files in {n_processes} processes")
+        input_join_path = lambda f: os.path.join("s3://", bucket_name_output, f)
+        output_join_path = lambda f: os.path.join("s3://", bucket_name_output, path_output, "/".join(f.split("/")[-2:]))
+        arguments = [(input_join_path(x), output_join_path(x)) for x in to_process]
+        run_jobs(arguments, parse_field, num_processes=n_processes)
     return

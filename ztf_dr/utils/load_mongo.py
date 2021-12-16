@@ -17,7 +17,7 @@ def _get_already_preprocess(path="/tmp/") -> Set[str]:
     files = [f for f in os.listdir(path) if f.startswith("already")]
     files = [pd.read_csv(os.path.join(path, f), header=None) for f in files]
     if len(files) == 0:
-        return {}
+        return set()
     df = pd.concat(files)
     df.columns = ["file", "inserted"]
     del files

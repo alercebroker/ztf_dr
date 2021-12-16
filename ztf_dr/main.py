@@ -8,9 +8,10 @@ from ztf_dr.utils.parse_parquet import parse_parquets
 from ztf_dr.utils.preprocess import Preprocessor
 from ztf_dr.utils.load_mongo import init_mongo, insert_data, drop_mongo
 from ztf_dr.utils import existing_in_bucket, split_list, monitor
-from ztf_dr.utils.s3 import s3_uri_bucket, get_s3_path_to_files
-from ztf_dr.db.mongo import create_indexes, insert_dataframe
 from ztf_dr.utils.jobs import run_jobs
+from ztf_dr.utils.s3 import s3_uri_bucket, get_s3_path_to_files
+from ztf_dr.collectors.downloader import DRDownloader
+from ztf_dr.db.mongo import create_indexes, insert_dataframe
 
 
 def _insert_features(file_path, mongo_config, batch_size=10000):
@@ -29,10 +30,9 @@ def cli():
 @click.argument("data_release_url", type=str)
 @click.argument("checksum_path", type=str)
 @click.argument("s3_uri", type=str)
-@click.option("--n-process", "-n", default=2, help="Number of cores")
+@click.option("--n-processes", "-n", default=2, help="Number of processes")
 @click.option("--output", "-o", type=str, default="/tmp")
 def download_data_release(data_release_url, checksum_path, s3_uri, n_process, output):
-    from ztf_dr.collectors.downloader import DRDownloader
     dr = DRDownloader(data_release_url,
                       checksum_path,
                       s3_uri=s3_uri,
@@ -44,8 +44,9 @@ def download_data_release(data_release_url, checksum_path, s3_uri, n_process, ou
 @click.command()
 @click.argument("s3_uri", type=str)
 @click.argument("output_path", type=str)
-def parse_data_release_parquets(s3_uri, output_path):
-    parse_parquets(s3_uri, output_path)
+@click.option("--n-processes", "-n", default=2, help="Number of processes")
+def parse_data_release_parquets(s3_uri, output_path, n_processes):
+    parse_parquets(s3_uri, output_path, n_processes=n_processes)
     return
 
 

@@ -1,5 +1,4 @@
 import boto3
-import logging
 
 from urllib.parse import urlparse
 from typing import List, Tuple
@@ -19,5 +18,14 @@ def get_s3_path_to_files(bucket_name: str, path: str) -> List[str]:
     s3 = boto3.resource('s3')
     bucket = s3.Bucket(bucket_name)
     input_files = [x.key for x in bucket.objects.filter(Prefix=path)]
-    logging.info(f"To process: {len(input_files)} files")
     return input_files
+
+
+def s3_filename_difference(list_a: List[str], list_b: List[str]) -> List[str]:
+    response = []
+    list_b = [x.split("/")[-1] for x in list_b]
+    for file in list_a:
+        _file = file.split("/")[-1]
+        if _file not in list_b:
+            response.append(file)
+    return response

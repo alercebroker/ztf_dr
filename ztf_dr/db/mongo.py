@@ -54,7 +54,7 @@ def drop_mongo(mongo_config: dict):
         _col.drop()
 
 
-def insert_lightcurves(filename: str, mongo_config: dict, batch_size: int = 10000):
+def insert_lightcurves_to_mongo(filename: str, mongo_config: dict, batch_size: int = 10000):
     limit_epochs = {
         1: 5,
         2: 5,
@@ -87,7 +87,7 @@ def insert_lightcurves(filename: str, mongo_config: dict, batch_size: int = 1000
     return inserted
 
 
-def insert_features(file_path, mongo_config, batch_size=10000):
+def insert_features_to_mongo(file_path: str, mongo_config: dict, batch_size=10000):
     features = pd.read_parquet(file_path)
     features["_id"] = features.index
     inserted = _insert_dataframe(features, mongo_config, batch_size=batch_size)

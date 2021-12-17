@@ -1,8 +1,6 @@
-import boto3
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-import re
 import os
 
 from multiprocessing import Pool

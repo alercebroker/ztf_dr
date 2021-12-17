@@ -1,4 +1,5 @@
 import os
+import logging
 
 
 def split_list(seq: list, num: int):
@@ -12,14 +13,14 @@ def split_list(seq: list, num: int):
     return out
 
 
-def monitor(outdir, outname, log=True, plot=True):
+def monitor(out_dir: str, out_name: str, log=True, plot=True):
     pid = os.getpid()
     L = ['psrecord', "%s" % pid, "--interval", "1"]
     if log:
-        L = L + ["--log", os.path.join(outdir, f"log_{outname}_{pid}.txt")]
+        L = L + ["--log", os.path.join(out_dir, f"log_{out_name}_{pid}.txt")]
     if plot:
-        L = L + ["--plot", os.path.join(outdir, f"plot_{outname}_{pid}.txt")]
+        L = L + ["--plot", os.path.join(out_dir, f"plot_{out_name}_{pid}.txt")]
     if not log and not plot:
-        print("Nothing being monitored")
+        logging.info("Nothing being monitored")
     else:
         os.spawnvpe(os.P_NOWAIT, 'psrecord', L, os.environ)

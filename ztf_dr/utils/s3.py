@@ -1,4 +1,5 @@
 import boto3
+import os
 
 from urllib.parse import urlparse
 from typing import List, Tuple
@@ -17,7 +18,11 @@ def s3_uri_bucket(s3_uri: str) -> Tuple:
 def get_s3_path_to_files(bucket_name: str, path: str) -> List[str]:
     s3 = boto3.resource('s3')
     bucket = s3.Bucket(bucket_name)
-    input_files = [x.key for x in bucket.objects.filter(Prefix=path)]
+    input_files = [
+        os.path.join("s3://", bucket_name, x.key)
+        for x in bucket.objects.filter(Prefix=path)
+        if "tmp" not in x.key
+    ]
     return input_files
 
 

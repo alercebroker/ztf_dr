@@ -43,8 +43,7 @@ def parse_parquets(s3_uri_input: str, s3_uri_output: str, n_processes: int = 2) 
     n_to_process = len(to_process)
     if n_to_process:
         logging.info(f"Process {n_to_process} files in {n_processes} processes")
-        input_join_path = lambda f: os.path.join("s3://", bucket_name_output, f)
         output_join_path = lambda f: os.path.join("s3://", bucket_name_output, path_output, "/".join(f.split("/")[-2:]))
-        arguments = [(input_join_path(x), output_join_path(x)) for x in to_process]
+        arguments = [(x, output_join_path(x)) for x in to_process]
         run_jobs(arguments, parse_field, num_processes=n_processes)
     return

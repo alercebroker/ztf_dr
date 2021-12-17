@@ -7,7 +7,7 @@ import os
 
 from multiprocessing import Pool
 from tqdm import tqdm
-from ztf_dr.utils import existing_in_bucket
+from ztf_dr.utils.s3 import s3_uri_bucket, get_s3_path_to_files
 
 
 class Preprocessor:
@@ -85,19 +85,19 @@ class Preprocessor:
     def _apply(self, row):
         self.apply(row[0], row[1])
 
-    def preprocess_bucket(self, bucket_name: str, prefix: str, output_bucket: str, n_cores=1):
-        field_and_parquet_regex = r".*/(field.*\.parquet)"
-        s3 = boto3.resource('s3')
-        bucket = s3.Bucket(bucket_name)
-        files = [x.key for x in bucket.objects.filter(Prefix=prefix) if x.key.endswith(".parquet")]
-        output = [re.findall(field_and_parquet_regex, x)[0] for x in files]
+    def preprocess_bucket(self, s3_uri_input, s3_uri_output: str, n_cores=1):
+        bucket_name_input, path_input = s3_uri_bucket(s3_uri_input)
+        bucket_name_output, path_output = s3_uri_bucket(s3_uri_output)
+
+        files = get_s3_path_to_files(bucket_name_input, path_input)
+        output_join_path = lambda f: os.path.join("s3://", bucket_name_output, path_output, "/".join(f.split("/")[-2:]))
 
         data = pd.DataFrame({
-            "input_file": [os.path.join("s3://", bucket_name, f) for f in files],
-            "output_file": [os.path.join(output_bucket, o) for o in output]
+            "input_file": files,
+            "output_file": [output_join_path(f) for f in files]
         })
 
-        existing_files = existing_in_bucket(output_bucket)
+        existing_files = get_s3_path_to_files(bucket_name_output, path_output)
         data = data[~data["output_file"].isin(existing_files)]
         if n_cores == 1:
             data.apply(lambda x: self.apply(x["input_file"], x["output_file"]), axis=1)

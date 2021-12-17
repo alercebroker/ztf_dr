@@ -1,17 +1,17 @@
 import click
 import logging
 import pandas as pd
-import re
 import os
 
 from ztf_dr.utils.parse_parquet import parse_parquets
 from ztf_dr.utils.preprocess import Preprocessor
 from ztf_dr.utils.load_mongo import init_mongo, insert_data, drop_mongo
-from ztf_dr.utils import existing_in_bucket, split_list, monitor
+from ztf_dr.utils import split_list, monitor
 from ztf_dr.utils.jobs import run_jobs
-from ztf_dr.utils.s3 import s3_uri_bucket, get_s3_path_to_files
+from ztf_dr.utils.s3 import s3_uri_bucket, get_s3_path_to_files, s3_filename_difference
 from ztf_dr.collectors.downloader import DRDownloader
-from ztf_dr.db.mongo import create_indexes, insert_dataframe
+from ztf_dr.db.mongo import insert_dataframe
+from ztf_dr.extractors import DataReleaseExtractor
 
 
 def _insert_features(file_path, mongo_config, batch_size=10000):
@@ -82,56 +82,42 @@ def insert_features(s3_uri: str,
 
 
 @click.command()
-@click.argument("bucket_name", type=str)
-@click.argument("bucket_prefix", type=str)
-@click.argument("bucket_output", type=str)
-@click.option("--n-cores", "-n", default=2)
-@click.option("--limit-epochs", "-l", default=20)
-@click.option("--mag-error-tolerance", "-t", default=1.0)
-def do_preprocess(bucket_name: str, bucket_prefix: str, bucket_output: str, n_cores: int, limit_epochs: int,
-                  mag_error_tolerance: float):
-    pr = Preprocessor(limit_epochs=limit_epochs, mag_error_tolerance=mag_error_tolerance, catflags_filter=0)
-    pr.preprocess_bucket(bucket_name, bucket_prefix, bucket_output, n_cores=n_cores)
-
-
-@click.command()
-@click.argument("bucket_input", type=str)
-@click.argument("bucket_output", type=str)
+@click.argument("s3_uri_input", type=str)
+@click.argument("s3_uri_output", type=str)
 @click.argument("partition", type=int)
 @click.option("--total-cores", "-t", default=300)
 @click.option("--preprocess", "-p", is_flag=True, default=False, help="Do preprocess")
 @click.option("--use-monitor", "-m", is_flag=True, default=False, help="Measure uses of resources using psrecord")
 @click.option("--path-monitor", "-mp", type=str, default="/home/apps/astro/alercebroker/resources/dr")
-def compute_features(bucket_input: str, bucket_output: str, partition: int, total_cores: int, preprocess: bool,
-                     use_monitor: bool, path_monitor: str):
-    from ztf_dr.extractors import DataReleaseExtractor
+def compute_features(s3_uri_input: str,
+                     s3_uri_output: str,
+                     partition: int,
+                     total_cores: int,
+                     preprocess: bool,
+                     use_monitor: bool,
+                     path_monitor: str):
     if use_monitor:
         monitor(path_monitor, f"compute_features_{partition}", log=True, plot=False)
     logging.info("Initializing features computer")
-    data_release = sorted(existing_in_bucket(bucket_input))
+    bucket_name_input, path_input = s3_uri_bucket(s3_uri_input)
+    bucket_name_output, path_output = s3_uri_bucket(s3_uri_output)
 
-    partitions = split_list(data_release, total_cores)
+    data_release = get_s3_path_to_files(bucket_name_input, path_input)
+    existing_features = get_s3_path_to_files(bucket_name_output, path_output)
+    to_process = s3_filename_difference(data_release, existing_features)
+
+    partitions = split_list(to_process, total_cores)
     my_partition = partitions[partition]
+    logging.info(f"Partition {partition} has {len(my_partition)} files")
     del partitions
     del data_release
-    logging.info("Local partition read")
-    existing_features = existing_in_bucket(bucket_output)
-    existing_features = [
-        x for x in existing_features
-        if x.split("/")[-1] in [y.split("/")[-1] for y in my_partition]
-    ]
-
-    logging.info(f"Partition {partition} get {len(existing_features)}/{len(my_partition)} files")
-
+    del to_process
+    del existing_features
     dr_ext = DataReleaseExtractor()
     dr_pre = Preprocessor(limit_epochs=20, mag_error_tolerance=1.0, catflags_filter=0)
     for index, file in enumerate(my_partition):
-        output_file = re.findall(r".*/(field.*)", file)[0]
-        output_file = os.path.join(bucket_output, output_file)
-
-        if output_file in existing_features:
-            logging.info(f"{index}/{len(my_partition)} already exists {file}")
-            continue
+        out_file = "/".join(file.split("/")[-2:])
+        output_file = os.path.join("s3://", bucket_name_output, path_output, out_file)
         logging.info(f"{index}/{len(my_partition)} processing {file}")
         data = pd.read_parquet(file)
         if preprocess:
@@ -175,7 +161,6 @@ def cmd():
     cli.add_command(download_data_release)
     cli.add_command(parse_data_release_parquets)
     cli.add_command(insert_features)
-    cli.add_command(do_preprocess)
     cli.add_command(compute_features)
     cli.add_command(load_mongo)
     cli()

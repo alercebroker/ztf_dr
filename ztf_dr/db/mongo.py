@@ -1,7 +1,9 @@
 import logging
 import pandas as pd
 import pymongo
+import os
 
+from ztf_dr.utils.preprocess import Preprocessor
 from typing import List, Tuple
 
 
@@ -10,7 +12,7 @@ def _create_batches(data: pd.DataFrame, batch_size: int = 100000):
     return batches
 
 
-def insert_dataframe(data: pd.DataFrame, mongo_config: dict, batch_size=100000) -> int:
+def _insert_dataframe(data: pd.DataFrame, mongo_config: dict, batch_size=100000) -> int:
     if len(data) == 0:
         return 0
 
@@ -36,13 +38,6 @@ def insert_dataframe(data: pd.DataFrame, mongo_config: dict, batch_size=100000) 
     return total_inserted
 
 
-def insert_features(file_path, mongo_config, batch_size=10000):
-    features = pd.read_parquet(file_path)
-    features["_id"] = features.index
-    inserted = insert_dataframe(features, mongo_config, batch_size=batch_size)
-    return inserted
-
-
 def create_indexes(mongo_config: dict, indexes: List[Tuple]):
     with pymongo.MongoClient(mongo_config["mongo_uri"]) as mongo_client:
         mongo_db = mongo_client[mongo_config["mongo_database"]]
@@ -51,10 +46,49 @@ def create_indexes(mongo_config: dict, indexes: List[Tuple]):
         logging.info(f"Indexes created: {resp}")
 
 
-def drop_mongo(mongo_config):
-    logger = logging.getLogger("load_mongo")
+def drop_mongo(mongo_config: dict):
     with pymongo.MongoClient(mongo_config["mongo_uri"]) as mongo_client:
-        logger.info(f"Dropping {mongo_config['mongo_database']}/{mongo_config['mongo_collection']}")
+        logging.info(f"Dropping {mongo_config['mongo_database']}/{mongo_config['mongo_collection']}")
         _db = mongo_client[mongo_config["mongo_database"]]
         _col = _db[mongo_config["mongo_collection"]]
         _col.drop()
+
+
+def insert_lightcurves(filename: str, mongo_config: dict, batch_size: int = 10000):
+    limit_epochs = {
+        1: 5,
+        2: 5,
+        3: 1
+    }
+    preprocessor = Preprocessor(limit_epochs=limit_epochs)
+    df = pd.read_parquet(filename, engine="pyarrow")
+    try:
+        df = preprocessor.run(df)
+        if df is None or df.shape[0] == 0:
+            logging.info(f"[PID {os.getpid()}] Inserted {0: >7} from {filename}")
+            return 0
+
+    except Exception as e:
+        raise Exception(f"{filename} with problems: {e}")
+
+    df.drop(columns=["catflags", "clrcoeff"], inplace=True)
+
+    df["loc"] = df.apply(lambda x: {
+        "loc": {
+            "type": "Point",
+            "coordinates": [x["objra"] - 180, x["objdec"]]
+        }
+    }, axis=1, result_type='expand')
+
+    df.rename(columns={"objectid": "_id"}, inplace=True)
+    for col in ["mag", "magerr", "hmjd"]:
+        df[col] = df[col].map(lambda x: x.tobytes())
+    inserted = _insert_dataframe(df, mongo_config, batch_size=batch_size)
+    return inserted
+
+
+def insert_features(file_path, mongo_config, batch_size=10000):
+    features = pd.read_parquet(file_path)
+    features["_id"] = features.index
+    inserted = _insert_dataframe(features, mongo_config, batch_size=batch_size)
+    return inserted

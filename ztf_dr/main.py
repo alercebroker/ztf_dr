@@ -4,21 +4,11 @@ import pandas as pd
 import os
 
 from ztf_dr.utils.parse_parquet import parse_parquets
-from ztf_dr.utils.preprocess import Preprocessor
-from ztf_dr.utils.load_mongo import init_mongo, insert_data, drop_mongo
 from ztf_dr.utils import split_list, monitor
 from ztf_dr.utils.jobs import run_jobs
 from ztf_dr.utils.s3 import s3_uri_bucket, get_s3_path_to_files, s3_filename_difference
 from ztf_dr.collectors.downloader import DRDownloader
-from ztf_dr.db.mongo import insert_dataframe
-from ztf_dr.extractors import DataReleaseExtractor
-
-
-def _insert_features(file_path, mongo_config, batch_size=10000):
-    features = pd.read_parquet(file_path)
-    features["_id"] = features.index
-    inserted = insert_dataframe(features, mongo_config, batch_size=batch_size)
-    return inserted
+from ztf_dr.db.mongo import insert_features, insert_lightcurves, drop_mongo, create_indexes
 
 
 @click.group()
@@ -32,12 +22,16 @@ def cli():
 @click.argument("s3_uri", type=str)
 @click.option("--n-processes", "-n", default=2, help="Number of processes")
 @click.option("--output", "-o", type=str, default="/tmp")
-def download_data_release(data_release_url, checksum_path, s3_uri, n_process, output):
+def download_data_release(data_release_url: str,
+                          checksum_path: str,
+                          s3_uri: str,
+                          n_processes: int,
+                          output: str):
     dr = DRDownloader(data_release_url,
                       checksum_path,
                       s3_uri=s3_uri,
                       output_folder=output)
-    dr.run(n_process)
+    dr.run(n_processes)
     return
 
 
@@ -45,7 +39,9 @@ def download_data_release(data_release_url, checksum_path, s3_uri, n_process, ou
 @click.argument("s3_uri", type=str)
 @click.argument("output_path", type=str)
 @click.option("--n-processes", "-n", default=2, help="Number of processes")
-def parse_data_release_parquets(s3_uri, output_path, n_processes):
+def parse_data_release_parquets(s3_uri: str,
+                                output_path: str,
+                                n_processes: int):
     parse_parquets(s3_uri, output_path, n_processes=n_processes)
     return
 
@@ -74,11 +70,11 @@ def insert_features(s3_uri: str,
     if n_process == 1:
         for file in to_process:
             file_path = os.path.join("s3://", bucket_name, file)
-            _insert_features(file_path, mongo_config, batch_size=batch_size)
+            insert_features(file_path, mongo_config, batch_size=batch_size)
 
     else:
         args = [(os.path.join("s3://", bucket_name, f), mongo_config, batch_size) for f in to_process]
-        run_jobs(args, _insert_features, num_processes=n_process)
+        run_jobs(args, insert_features, num_processes=n_process)
 
 
 @click.command()
@@ -96,6 +92,8 @@ def compute_features(s3_uri_input: str,
                      preprocess: bool,
                      use_monitor: bool,
                      path_monitor: str):
+    from ztf_dr.extractors import DataReleaseExtractor
+    from ztf_dr.utils.preprocess import Preprocessor
     if use_monitor:
         monitor(path_monitor, f"compute_features_{partition}", log=True, plot=False)
     logging.info("Initializing features computer")
@@ -139,22 +137,38 @@ def compute_features(s3_uri_input: str,
 @click.argument("mongo_database", type=str)
 @click.argument("mongo_collection", type=str)
 @click.argument("s3_bucket", type=str)
-@click.option("--n-cores", "-n", default=1)
+@click.option("--n-processes", "-n", default=1)
 @click.option("--batch-size", "-b", default=10000)
 @click.option("--drop", "-d", is_flag=True, default=False)
-def load_mongo(mongo_uri: str, mongo_database: str, mongo_collection: str, s3_bucket: str, n_cores: int,
-               batch_size: int, drop: bool):
-    logger = logging.getLogger("load_mongo")
-    logger.setLevel("INFO")
-    logging.basicConfig(format='%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S', level="INFO")
-    file = logging.FileHandler("load_mongo.log")
-    logger.addHandler(file)
-    logger.info("Init now")
+def load_mongo(mongo_uri: str,
+               mongo_database: str,
+               mongo_collection: str,
+               s3_uri: str,
+               n_processes: int,
+               batch_size: int,
+               drop: bool):
+    logging.info("Init now")
+    mongo_config = {
+        "mongo_uri": mongo_uri,
+        "mongo_database": mongo_database,
+        "mongo_collection": mongo_collection
+    }
     if drop:
-        drop_mongo(mongo_uri, mongo_database, mongo_collection)
-    insert_data(s3_bucket, mongo_uri, mongo_database, mongo_collection, batch_size=batch_size, n_cores=n_cores)
-    init_mongo(mongo_uri, mongo_database, mongo_collection)
+        drop_mongo(mongo_config)
+    bucket_name, path = s3_uri_bucket(s3_uri)
+    to_process = get_s3_path_to_files(bucket_name, path)
+
+    if n_processes == 1:
+        for file in to_process:
+            file_path = os.path.join("s3://", bucket_name, file)
+            insert_lightcurves(file_path, mongo_config, batch_size=batch_size)
+
+    else:
+        args = [(os.path.join("s3://", bucket_name, f), mongo_config, batch_size) for f in to_process]
+        run_jobs(args, insert_lightcurves, num_processes=n_processes)
+
+    mongo_indexes = [("loc", "2dsphere"), ("fieldid", 1), ("filterid", 1)]
+    create_indexes(mongo_config, mongo_indexes)
 
 
 def cmd():

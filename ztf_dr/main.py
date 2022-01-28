@@ -85,7 +85,7 @@ def compute_features(s3_uri_input: str,
     for index, file in enumerate(my_partition):
         out_file = "/".join(file.split("/")[-2:])
         output_file = os.path.join("s3://", bucket_name_output, path_output, out_file)
-        logging.info(f"{index}/{len(my_partition)} processing {file}")
+        logging.info(f"{index+1}/{len(my_partition)} processing {file}")
         data = pd.read_parquet(file)
         if preprocess:
             data = dr_pre.run(data)
@@ -95,10 +95,12 @@ def compute_features(s3_uri_input: str,
 
         features = dr_ext.compute_features(data)
         del data
+        if len(features) == 0:
+            continue
         if features is not None:
             features.to_parquet(output_file)
         del features
-    pass
+    logging.info(f"Features computed")
 
 
 @click.command()

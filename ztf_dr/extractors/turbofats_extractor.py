@@ -9,10 +9,10 @@ from ztf_dr.extractors.base import DR_base
 class DRTurboFatsExtractor(DR_base, TurboFatsFeatureExtractor):
     def __init__(self):
         super().__init__(bands=[0])
-        self.feature_space.data_column_names = ["mjd", "mag", "magerr"]
+        self.feature_space.data_column_names = ["mag", "mjd", "magerr"]
 
     def get_required_keys(self) -> List[str]:
-        return ["hmjd", "mag", "magerr"]
+        return ["mag", "hmjd", "magerr"]
 
     def nan_series(self):
         return pd.Series(
@@ -30,7 +30,7 @@ class DRTurboFatsExtractor(DR_base, TurboFatsFeatureExtractor):
         df = pd.DataFrame({
             "mag": mag,
             "magerr": magerr,
-            "mjd": hmjd
+            "mjd": hmjd,
         })
         df["index"] = oid
         df.set_index("index", inplace=True)

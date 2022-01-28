@@ -6,41 +6,23 @@ import os
 import wget
 import logging
 
+from ztf_dr.utils.s3 import s3_uri_bucket
+from ztf_dr.utils.jobs import run_jobs
 
-from tqdm import tqdm
-from multiprocessing import Pool
 
-
-def generate_md5_checksum(fname: str, chunksize=4096):
+def generate_md5_checksum(filename: str, chunk_size: int = 4096):
     """
     Generate md5 checksum with specific checksum.
 
-    :param fname: Name of file to get checksum.
-    :param chunksize: Size to read for each iteration
+    :param filename: Name of file to get checksum.
+    :param chunk_size: Size to read for each iteration
     :return: Checksum in hex
     """
     hash_md5 = hashlib.md5()
-    with open(fname, "rb") as f:
-        for chunk in iter(lambda: f.read(chunksize), b""):
+    with open(filename, "rb") as f:
+        for chunk in iter(lambda: f.read(chunk_size), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
-
-
-def field_stats(path):
-    """
-    Get total files and total size of a specific field.
-
-    :param path: Path in local machine that point to field
-    :return: Tuple of 2 positions. [0] -> count of files, [1] -> total size in bytes
-    """
-    total_size = 0
-    files = 0
-    for dirpath, dirnames, filenames in os.walk(path):
-        for i in filenames:
-            f = os.path.join(dirpath, i)
-            total_size += os.path.getsize(f)
-            files += 1
-    return files, total_size
 
 
 class DRDownloader:
@@ -50,46 +32,36 @@ class DRDownloader:
     ...
 
     Attributes:
-        logger: specific logger of class
-        data_release_url: valid url of data release version
-        checksum_path: url/path direction of checksums
-        bucket: S3 bucket to save data release files
-        output_folder: target folder to contain temps files
-        checksums: dataframe that contain parquet urls and checksums
-        uploaded_files: list files that are contained in S3 bucket.
+        logger: specific logger of class.
+        data_release_url: valid url of data release version.
+        checksum_path: url/path direction of checksums.
+        s3_uri: S3 bucket to save data release files.
+        checksums: dataframe that contain parquet urls and checksums.
 
     """
     def __init__(self,
-                 data_release_url,
-                 checksum_path,
-                 bucket,
+                 data_release_url: str,
+                 checksum_path: str,
+                 s3_uri: str,
                  output_folder="/tmp"):
         self.logger = self.init_logging()
         self.data_release_url = data_release_url
         self.checksum_path = checksum_path
-        self.bucket = bucket
         self.output_folder = output_folder
-        self.checksums = None
+        self.bucket_name, self.path = s3_uri_bucket(s3_uri)
+        self.checksums = self.get_checksums()
         self.uploaded_files = self.in_s3_files()
-
-        self.get_checksums()
 
     def in_s3_files(self) -> list:
         """
         Get the list of parquet files in S3 bucket.
         :return: List of files in S3
         """
-        pattern = r"s3://([\w'-]+)/([\w'-]+).*"
-        data = re.findall(pattern, self.bucket)
-        if len(data) != 1:
-            raise ValueError("Put a correct format path: s3://<bucket-name>/<dr-folder>")
-        data = data[0]
-        bucket_name, data_release = data[0], data[1]
-        self.logger.info(f"Finding existing parquets in {bucket_name} of {data_release}")
+        self.logger.info(f"Finding existing parquets in {self.bucket_name} of {self.path}")
         s3 = boto3.resource('s3')
-        bucket = s3.Bucket(bucket_name)
-        files = [x.key.split("/")[-1] for x in bucket.objects.filter(Prefix=data_release)]
-        self.logger.info(f"Found {len(files)} parquets in {self.bucket}")
+        bucket = s3.Bucket(self.bucket_name)
+        files = [x.key.split("/")[-1] for x in bucket.objects.filter(Prefix=self.path)]
+        self.logger.info(f"Found {len(files)} parquets in {self.bucket_name}")
         return files
 
     def init_logging(self, loglevel="INFO"):
@@ -128,8 +100,7 @@ class DRDownloader:
                                 squeeze=True)
 
         checksums["field"] = checksums["file"].map(lambda x: find_field(x))
-        checksums["file"] = checksums['file'].map(lambda x: self.data_release_url + x[2:])
-        self.checksums = checksums
+        checksums["file"] = checksums['file'].map(lambda x: os.path.join(self.data_release_url, x[2:]))
         return checksums
 
     def download(self,
@@ -174,55 +145,45 @@ class DRDownloader:
         :param field_name: Name of field to upload
         :return: 1 if is impossible to upload and 0 if there were no errors
         """
-        if not self.bucket:
+        if not self.bucket_name:
             return 1
-        bucket_dir = os.path.join(self.bucket, field_name)
+        bucket_dir = os.path.join("s3://", self.bucket_name, self.path, field_name)
         command = f"aws s3 sync {local_path} {bucket_dir} > /dev/null"
-        files, size = field_stats(local_path)
-        self.logger.info(f"Uploading {local_path} ({files} files, {size/1000000}MB)")
         return os.system(command)
 
-    def process(self, data) -> None:
+    def process(self, field: str, rows: pd.DataFrame) -> None:
         """
         Basic method to process one field of data release, download all parquets and finish uploading all files to S3.
         After that remove all temp files.
 
-        :param data: Data of one field
+        :param field: Data of one field
+        :param rows:
         :return:
         """
-        field = data[0]
-        rows = data[1]
-
         field_path = os.path.join(self.output_folder, field)
-
         if not os.path.exists(field_path):
             os.makedirs(field_path)
 
-        self.logger.info(f"Downloading field: {field} ({len(rows)} parquets)")
         for index, row in rows.iterrows():
-            checksum_reference = row[0]
-            link = row[1]
+            checksum_reference = row["checksum"]
+            link = row["file"]
             parquet = link.split("/")[-1]
             parquet_path = os.path.join(field_path, parquet)
-
-            if parquet in self.uploaded_files:
-                self.logger.info(f"Already exists {parquet} in {self.bucket}")
-            else:
+            if parquet not in self.uploaded_files:
                 self.download(parquet_path, link, checksum_reference)
 
-        if self.bucket:
+        if self.bucket_name:
             self.bulk_upload_s3(field_path, field)
         os.system(f"rm -rf {field_path}")
         return
 
-    def run(self, n_proc=10) -> None:
+    def run(self, num_processes: int = 10) -> None:
         """
         Method to start massive parallel download with specific number of process.
-        :param n_proc: Number of process to execute the routine.
+        :param num_processes: Number of process to execute the routine.
         :return:
         """
-        pool = Pool(n_proc)
         fields = self.checksums.groupby(["field"])
-        for _ in tqdm(pool.imap_unordered(self.process, fields), total=len(fields)):
-            pass
+        fields = [f for f in fields]
+        run_jobs(fields, self.process, num_processes=num_processes)
         return

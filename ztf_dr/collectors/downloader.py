@@ -49,9 +49,8 @@ class DRDownloader:
         self.checksum_path = checksum_path
         self.output_folder = output_folder
         self.bucket_name, self.path = s3_uri_bucket(s3_uri)
-        self.checksums = None
+        self.checksums = self.get_checksums()
         self.uploaded_files = self.in_s3_files()
-        self.get_checksums()
 
     def in_s3_files(self) -> list:
         """
@@ -102,7 +101,6 @@ class DRDownloader:
 
         checksums["field"] = checksums["file"].map(lambda x: find_field(x))
         checksums["file"] = checksums['file'].map(lambda x: os.path.join(self.data_release_url, x[2:]))
-        self.checksums = checksums
         return checksums
 
     def download(self,
@@ -167,11 +165,10 @@ class DRDownloader:
             os.makedirs(field_path)
 
         for index, row in rows.iterrows():
-            checksum_reference = row[0]
-            link = row[1]
+            checksum_reference = row["checksum"]
+            link = row["file"]
             parquet = link.split("/")[-1]
             parquet_path = os.path.join(field_path, parquet)
-
             if parquet not in self.uploaded_files:
                 self.download(parquet_path, link, checksum_reference)
 

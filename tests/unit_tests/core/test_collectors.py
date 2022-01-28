@@ -29,7 +29,6 @@ class GetDataReleaseTest(TestCase):
         get_checksums.assert_called()
         get_checksums.return_value = collector.CHECKSUMS_TEST
 
-        self.dw.checksums = collector.CHECKSUMS_TEST
         fields = self.dw.checksums.groupby(["field"])
         for r in fields:
             field, row = (r[0], r[1][["checksum", "file"]])

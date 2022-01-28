@@ -110,12 +110,12 @@ def compute_features(s3_uri_input: str,
 @click.option("--batch-size", "-b", default=10000)
 @click.option("--drop", "-d", is_flag=True, default=False)
 def insert_lightcurves(mongo_uri: str,
-               mongo_database: str,
-               mongo_collection: str,
-               s3_uri: str,
-               n_processes: int,
-               batch_size: int,
-               drop: bool):
+                       mongo_database: str,
+                       mongo_collection: str,
+                       s3_uri: str,
+                       n_processes: int,
+                       batch_size: int,
+                       drop: bool):
     logging.info("Init now")
     mongo_config = {
         "mongo_uri": mongo_uri,

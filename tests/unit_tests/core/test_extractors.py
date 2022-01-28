@@ -4,7 +4,7 @@ from unittest import TestCase
 from ztf_dr.extractors import *
 
 
-DR5_SAMPLE = pd.read_parquet("tests/unit_test/core/data/DR5_field_example.parquet")[:10]
+DR5_SAMPLE = pd.read_parquet("tests/unit_tests/core/data/DR5_field_example.parquet")[:10]
 
 
 class DataReleaseTest(TestCase):

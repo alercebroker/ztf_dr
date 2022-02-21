@@ -3,6 +3,7 @@ import logging
 import pandas as pd
 import os
 
+from aiohttp.client_exceptions import ServerTimeoutError
 from ztf_dr.utils.parse_parquet import parse_parquets
 from ztf_dr.utils import split_list, monitor
 from ztf_dr.utils.jobs import run_jobs
@@ -98,7 +99,14 @@ def compute_features(s3_uri_input: str,
         if len(features) == 0:
             continue
         if features is not None:
-            features.to_parquet(output_file)
+            tries = 0
+            while tries < 5:
+                try:
+                    features.to_parquet(output_file)
+                    tries = 5
+                except ServerTimeoutError:
+                    tries += 1
+
         del features
     logging.info(f"Features computed")
 

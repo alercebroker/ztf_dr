@@ -73,7 +73,6 @@ def compute_features(s3_uri_input: str,
     data_release = get_s3_path_to_files(bucket_name_input, path_input)
     existing_features = get_s3_path_to_files(bucket_name_output, path_output)
     to_process = s3_filename_difference(data_release, existing_features)
-
     partitions = split_list(to_process, total_cores)
     my_partition = partitions[partition]
     logging.info(f"Partition {partition} has {len(my_partition)} files")
@@ -93,10 +92,10 @@ def compute_features(s3_uri_input: str,
 
         if data is None:
             continue
-
         features = dr_ext.compute_features(data)
         del data
         if len(features) == 0:
+            logging.info(f"No features for {file}")
             continue
         if features is not None:
             tries = 0

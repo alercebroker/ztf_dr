@@ -1,4 +1,5 @@
 astropy
+aiohttp
 boto3
 celerite2
 click

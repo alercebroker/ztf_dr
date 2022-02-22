@@ -13,7 +13,7 @@ from ztf_dr.db.mongo import insert_features_to_mongo, insert_lightcurves_to_mong
 
 
 @click.group()
-def cli():
+def cli():  # pragma: no cover
     pass
 
 
@@ -177,7 +177,7 @@ def insert_features(mongo_uri: str,
         run_jobs(args, insert_features_to_mongo, num_processes=n_process)
 
 
-def cmd():
+def cmd():  # pragma: no cover
     cli.add_command(download_data_release)
     cli.add_command(parse_data_release_parquets)
     cli.add_command(compute_features)
@@ -186,7 +186,7 @@ def cmd():
     cli()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     logging.basicConfig(level="INFO",
                         format='%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')

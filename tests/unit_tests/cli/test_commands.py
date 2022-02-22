@@ -6,8 +6,11 @@ from unittest import mock, TestCase
 from data import collector
 from click.testing import CliRunner
 from moto import mock_s3
-from ztf_dr.main import download_data_release, compute_features, parse_data_release_parquets, insert_features, insert_lightcurves
-
+from ztf_dr.main import (download_data_release,
+                         compute_features,
+                         parse_data_release_parquets,
+                         insert_features,
+                         insert_lightcurves)
 
 def fake_process(func, y, args=None):
     class FakeResponse:

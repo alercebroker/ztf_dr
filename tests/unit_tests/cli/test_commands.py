@@ -12,6 +12,7 @@ from ztf_dr.main import (download_data_release,
                          insert_features,
                          insert_lightcurves)
 
+
 def fake_process(func, y, args=None):
     class FakeResponse:
         def __init__(self, a):
@@ -81,7 +82,8 @@ class CliTest(TestCase):
                                                   "0",  # partition
                                                   "-t", f"{self.fake_fields}",  # number of partitions
                                                   "-m",  # use resource monitor
-                                                  "-mp", "/tmp"  # path to monitor
+                                                  "-mp", "/tmp",  # path to monitor
+                                                  "-p"
                                                   ])
         self.assertEqual(result.exit_code, 0)
         s3 = boto3.resource('s3')

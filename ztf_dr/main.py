@@ -131,7 +131,7 @@ def insert_lightcurves(mongo_uri: str,
         "mongo_database": mongo_database,
         "mongo_collection": mongo_collection
     }
-    if drop:
+    if drop:  # pragma: no cover
         drop_mongo(mongo_config)
     bucket_name, path = s3_uri_bucket(s3_uri)
     to_process = get_s3_path_to_files(bucket_name, path)
@@ -139,7 +139,7 @@ def insert_lightcurves(mongo_uri: str,
         for file in to_process:
             insert_lightcurves_to_mongo(file, mongo_config, batch_size=batch_size)
 
-    else:
+    else:  # pragma: no cover
         args = [(os.path.join("s3://", bucket_name, f), mongo_config, batch_size) for f in to_process]
         run_jobs(args, insert_lightcurves_to_mongo, num_processes=n_processes)
 
@@ -172,7 +172,7 @@ def insert_features(mongo_uri: str,
         for file in to_process:
             insert_features_to_mongo(file, mongo_config, batch_size=batch_size)
 
-    else:
+    else:  # pragma: no cover
         args = [(f, mongo_config, batch_size) for f in to_process]
         run_jobs(args, insert_features_to_mongo, num_processes=n_process)
 

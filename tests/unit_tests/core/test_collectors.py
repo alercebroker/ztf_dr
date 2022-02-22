@@ -34,6 +34,12 @@ class GetDataReleaseTest(TestCase):
             field, row = (r[0], r[1][["checksum", "file"]])
             self.dw.process(field, row)
 
+    def test_init_bad_logging(self):
+        dw = DRDownloader(self.data_release_example, self.checksums, self.bucket)
+        with self.assertRaises(Exception) as context:
+            dw.init_logging("NOT_EXISTS_LEVEL")
+        self.assertRaises(Exception, context)
+
 
 class CrawlerTest(TestCase):
     def setUp(self) -> None:

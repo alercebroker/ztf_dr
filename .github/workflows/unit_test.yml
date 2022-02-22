@@ -32,7 +32,7 @@ jobs:
         pip install -e .
     - name: Test with pytest
       run: |
-        coverage run --source ztf_dr --omit ztf_dr/main.py -m pytest -x -s tests/unit_tests
+        coverage run --source ztf_dr -m pytest -x -s tests/unit_tests
         coverage xml
     - name: Codecov
       uses: codecov/codecov-action@v1

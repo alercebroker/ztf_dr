@@ -13,7 +13,7 @@ from ztf_dr.db.mongo import insert_features_to_mongo, insert_lightcurves_to_mong
 
 
 @click.group()
-def cli():
+def cli():  # pragma: no cover
     pass
 
 
@@ -114,7 +114,7 @@ def compute_features(s3_uri_input: str,
 @click.argument("mongo_uri", type=str)
 @click.argument("mongo_database", type=str)
 @click.argument("mongo_collection", type=str)
-@click.argument("s3_bucket", type=str)
+@click.argument("s3_uri", type=str)
 @click.option("--n-processes", "-n", default=1)
 @click.option("--batch-size", "-b", default=10000)
 @click.option("--drop", "-d", is_flag=True, default=False)
@@ -131,17 +131,15 @@ def insert_lightcurves(mongo_uri: str,
         "mongo_database": mongo_database,
         "mongo_collection": mongo_collection
     }
-    if drop:
+    if drop:  # pragma: no cover
         drop_mongo(mongo_config)
     bucket_name, path = s3_uri_bucket(s3_uri)
     to_process = get_s3_path_to_files(bucket_name, path)
-
     if n_processes == 1:
         for file in to_process:
-            file_path = os.path.join("s3://", bucket_name, file)
-            insert_lightcurves_to_mongo(file_path, mongo_config, batch_size=batch_size)
+            insert_lightcurves_to_mongo(file, mongo_config, batch_size=batch_size)
 
-    else:
+    else:  # pragma: no cover
         args = [(os.path.join("s3://", bucket_name, f), mongo_config, batch_size) for f in to_process]
         run_jobs(args, insert_lightcurves_to_mongo, num_processes=n_processes)
 
@@ -150,16 +148,16 @@ def insert_lightcurves(mongo_uri: str,
 
 
 @click.command()
-@click.argument("s3_uri", type=str)
 @click.argument("mongo_uri", type=str)
 @click.argument("mongo_database", type=str)
 @click.argument("mongo_collection", type=str)
+@click.argument("s3_uri", type=str)
 @click.option("--n-process", "-n", default=2)
 @click.option("--batch-size", "-b", default=10000)
-def insert_features(s3_uri: str,
-                    mongo_uri: str,
+def insert_features(mongo_uri: str,
                     mongo_database: str,
                     mongo_collection: str,
+                    s3_uri: str,
                     n_process: int,
                     batch_size: int):
     bucket_name, path = s3_uri_bucket(s3_uri)
@@ -172,15 +170,14 @@ def insert_features(s3_uri: str,
 
     if n_process == 1:
         for file in to_process:
-            file_path = os.path.join("s3://", bucket_name, file)
-            insert_features_to_mongo(file_path, mongo_config, batch_size=batch_size)
+            insert_features_to_mongo(file, mongo_config, batch_size=batch_size)
 
-    else:
-        args = [(os.path.join("s3://", bucket_name, f), mongo_config, batch_size) for f in to_process]
+    else:  # pragma: no cover
+        args = [(f, mongo_config, batch_size) for f in to_process]
         run_jobs(args, insert_features_to_mongo, num_processes=n_process)
 
 
-def cmd():
+def cmd():  # pragma: no cover
     cli.add_command(download_data_release)
     cli.add_command(parse_data_release_parquets)
     cli.add_command(compute_features)
@@ -189,7 +186,7 @@ def cmd():
     cli()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     logging.basicConfig(level="INFO",
                         format='%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')

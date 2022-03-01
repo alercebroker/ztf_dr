@@ -1,7 +1,6 @@
 import sys
 from pyspark.sql import *
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import col
 
 spark = SparkSession.builder.getOrCreate()
 api = spark._jvm.org.alerce.minimal_astroide
@@ -15,7 +14,10 @@ radius = 1.5/3600.
 healpix_level = 12
 
 labels_df = spark.read.load(labels)
-df = spark.read.load(data_dir).withColumnRenamed("objra", "ra").withColumnRenamed("objdec", "dec")
+df = spark.read.load(data_dir)\
+    .select("objectid", "filterid", "fieldid", "rcid", "objra", "objdec", "nepochs")\
+    .withColumnRenamed("objra", "ra")\
+    .withColumnRenamed("objdec", "dec")
 
 dfj_healpix = api.HealpixPartitioner.execute(spark._jsparkSession, df._jdf, healpix_level, 'ra', 'dec')
 df_healpix = DataFrame(dfj_healpix, df.sql_ctx)
@@ -41,5 +43,5 @@ to_drop = ["ipix",
            "source_period_2",
            "source_redshift_2"]
 
-result = result.drop(*to_drop).withColumn("fid", col("filterid"))  # create fid to create partitions
-result.write.option("maxRecordsPerFile", 50000).partitionBy("fid").parquet(output)
+result = result.drop(*to_drop)
+result.coalesce(50).write.mode("overwrite").parquet(output)

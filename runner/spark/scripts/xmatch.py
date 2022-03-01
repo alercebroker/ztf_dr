@@ -41,6 +41,5 @@ to_drop = ["ipix",
            "source_period_2",
            "source_redshift_2"]
 
-result = result.drop(*to_drop)
-duplicated = df.withColumn("fid", col("filterid"))
+result = result.drop(*to_drop).withColumn("fid", col("filterid"))  # create fid to create partitions
 result.write.option("maxRecordsPerFile", 50000).partitionBy("fid").parquet(output)

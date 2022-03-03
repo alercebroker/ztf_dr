@@ -7,5 +7,5 @@ spark = SparkSession.builder.getOrCreate()
 data_dir = sys.argv[1]
 output = sys.argv[2]
 
-df = spark.read.load(data_dir).withColumn("_fid", col("fid"))
+df = spark.read.load(data_dir).withColumn("fid", col("filterid"))
 df.write.option("maxRecordsPerFile", 100000).partitionBy("fid").parquet(output)

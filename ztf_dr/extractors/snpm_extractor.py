@@ -26,6 +26,7 @@ class DRSNPMExtractor(DR_base, SPMExtractorPhaseII):
         errors = mag_to_flux(mag_targets - errors) - targets
         times = times.astype(np.float32)
         targets = targets.astype(np.float32)
+        targets = targets - np.percentile(targets, 5)
         fit_error = self.sn_model.fit(times, targets, errors)
         model_parameters = self.sn_model.get_model_parameters()
         model_parameters.append(fit_error)

@@ -3,7 +3,7 @@ from pyspark.sql import *
 from pyspark.sql.functions import col
 
 spark = SparkSession.builder.getOrCreate()
-
+spark.sql("set spark.sql.files.ignoreCorruptFiles=true")
 
 labels = sys.argv[1]
 data_dir = sys.argv[2]

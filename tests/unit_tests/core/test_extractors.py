@@ -20,7 +20,7 @@ class DataReleaseTest(TestCase):
     def test_get_features_keys(self):
         keys = ['gal_b', 'gal_l', 'MHPS_ratio', 'MHPS_low', 'MHPS_high',
                 'MHPS_non_zero', 'MHPS_PN_flag', 'SPM_A', 'SPM_t0', 'SPM_gamma', 'SPM_beta', 'SPM_tau_rise',
-                'SPM_tau_fall', 'SPM_chi', 'Amplitude', 'AndersonDarling', 'Autocor_length', 'Beyond1Std', 'Con',
+                'SPM_tau_fall', 'SPM_chi', 'SPM_C', 'Amplitude', 'AndersonDarling', 'Autocor_length', 'Beyond1Std', 'Con',
                 'Eta_e', 'Gskew', 'MaxSlope', 'Mean', 'Meanvariance', 'MedianAbsDev', 'MedianBRP', 'PairSlopeTrend',
                 'PercentAmplitude', 'Q31', 'Rcs', 'Skew', 'SmallKurtosis', 'Std', 'StetsonK', 'Pvar', 'ExcessVar',
                 'SF_ML_amplitude', 'SF_ML_gamma', 'IAR_phi', 'LinearTrend', 'GP_DRW_sigma', 'GP_DRW_tau',
@@ -36,7 +36,7 @@ class DataReleaseTest(TestCase):
         response = self.dr_extractor.compute_features(DR5_SAMPLE)
         self.assertIsInstance(response, pd.DataFrame)
         self.assertEqual(response.shape[0], 10)
-        self.assertEqual(response.shape[1], 70)
+        self.assertEqual(response.shape[1], 71)
 
 
 class FoldedKimTest(TestCase):

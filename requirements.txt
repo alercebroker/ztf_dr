@@ -18,4 +18,4 @@ pymongo
 -e git+https://git@github.com/alercebroker/turbo-fats#egg=turbofats
 -e git+https://git@github.com/alercebroker/mhps#egg=mhps
 -e git+https://git@github.com/alercebroker/P4J#egg=P4J
--e git+https://github.com/alercebroker/lc_classifier#egg=lc_classifier
+-e git+https://github.com/alercebroker/lc_classifier@feat/snpm_dr#egg=lc_classifier

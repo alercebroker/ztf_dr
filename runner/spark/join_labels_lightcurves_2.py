@@ -18,4 +18,4 @@ df = spark.read.load(data_dir)\
 
 result = labels_df.join(df, on=[labels_df.objectid == df.oid, labels_df.filterid == df.fid], how="inner")
 result = result.drop(col("oid"))
-result.repartition("objectid").write.option("maxRecordsPerFile", 10000).partitionBy("fid").parquet(output)
+result.repartition("nepochs").write.option("maxRecordsPerFile", 10000).partitionBy("fid").parquet(output)

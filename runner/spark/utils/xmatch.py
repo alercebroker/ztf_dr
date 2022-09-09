@@ -1,5 +1,5 @@
 from pyspark.sql import *
-
+from pyspark.sql.functions import col
 
 def xmatch(big_catalog: DataFrame,
            small_catalog: DataFrame,
@@ -29,4 +29,5 @@ def xmatch(big_catalog: DataFrame,
                                   False)
 
     result = DataFrame(result, result.sql_ctx)
+    result = result.orderBy(col("objectid"), col("filterid"), col("distance")).dropDuplicates(["objectid", "filterid"])
     return result

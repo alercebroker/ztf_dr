@@ -28,6 +28,6 @@ def xmatch(big_catalog: DataFrame,
                                   radius,
                                   False)
 
-    result = DataFrame(result, result.sql_ctx)
+    result = DataFrame(result, small_catalog_healpix.sql_ctx)
     result = result.orderBy(col("objectid"), col("filterid"), col("distance")).dropDuplicates(["objectid", "filterid"])
     return result

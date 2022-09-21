@@ -2,7 +2,7 @@ import sys
 from pyspark.sql import *
 from utils.xmatch import xmatch
 
-CATWISE_PATH = "s3://alerce-catalogs/catalogs-parquets/PS1_lite/*.parquet"
+CATWISE_PATH = "s3://alerce-catalogs/catalogs-parquets/CatWISE/*.parquet"
 RADIUS = 2.0/3600.
 HEALPIX_LEVEL = 12
 TO_DROP = ["ipix", "ra_2", "dec_2", "ipix_2", "ipix_neigh"]

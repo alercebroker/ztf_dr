@@ -13,7 +13,7 @@ if __name__ == "__main__":
     output_path = sys.argv[2]
 
     spark = SparkSession.builder.getOrCreate()
-    catalog = spark.read.load(CATWISE_PATH).select("source_id", "w1mpro_pm", "w2mpro_pm")
+    catalog = spark.read.load(CATWISE_PATH).select("source_id", "ra", "dec", "w1mpro_pm", "w2mpro_pm")
     data_release = spark.read.load(data_path).select("objectid", "filterid", "objra", "objdec").withColumnRenamed(
         "objra", "ra").withColumnRenamed("objdec", "dec")
 
